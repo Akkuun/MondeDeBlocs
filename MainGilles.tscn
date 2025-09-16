@@ -79,20 +79,22 @@ _surfaces = [{
 [sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_hmo8j"]
 points = PackedVector3Array(0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5)
 
-[node name="Node3D" type="Node3D" node_paths=PackedStringArray("cubeViolet", "cubeGris")]
+[node name="Node3D" type="Node3D" node_paths=PackedStringArray("cubeViolet", "cubeGris", "donutSaucisse")]
 script = ExtResource("1_hmo8j")
 cubeViolet = NodePath("VioletBois")
 cubeGris = NodePath("Grisroche")
+donutSaucisse = NodePath("DonutSaucisse")
 
 [node name="GrisTungstene" type="RigidBody3D" parent="."]
+transform = Transform3D(-0.37271246, -0.38874403, 0.84259325, 0.927947, -0.15614015, 0.33843, 0, 0.908019, 0.41892925, -0.3642521, 8.375349, 0)
 
 [node name="GrisTungsteneMesh" type="MeshInstance3D" parent="GrisTungstene"]
-transform = Transform3D(1, 0, 0, 0, 5, 0, 0, 0, 1, 7.353099, 5.5, -4.189136)
+transform = Transform3D(1, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0, 0)
 mesh = SubResource("ArrayMesh_a3utp")
 skeleton = NodePath("../..")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="GrisTungstene"]
-transform = Transform3D(1, 0, 0, 0, 5, 0, 0, 0, 1, 7.353099, 5.5, -4.189136)
+transform = Transform3D(1, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("ConvexPolygonShape3D_cmqx1")
 
 [node name="VioletBois" type="RigidBody3D" parent="."]
@@ -118,7 +120,10 @@ transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
 shape = SubResource("ConvexPolygonShape3D_psjnh")
 
 [node name="DonutSaucisse" type="RigidBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.3449936, 0.49882722, 6.933569)
+transform = Transform3D(0.938493, 0.32488444, -0.116965584, 0, 0.3387379, 0.9408807, 0.3452982, -0.88301, 0.31790313, -5.3449936, 6.925171, 1.7449036)
+center_of_mass_mode = 1
+center_of_mass = Vector3(0, 1.45, 0)
+freeze_mode = 1
 
 [node name="DonutSaucisseMesh" type="MeshInstance3D" parent="DonutSaucisse"]
 mesh = ExtResource("3_cmqx1")

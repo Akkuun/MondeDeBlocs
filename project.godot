@@ -11,6 +11,6 @@ config_version=5
 [application]
 
 config/name="MondeDeBlocs"
-run/main_scene="uid://e4q6j6j5lft3"
+run/main_scene="uid://c1k14j84uye1l"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
