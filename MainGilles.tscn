@@ -36,5 +36,6 @@ script = ExtResource("5_cmqx1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.82925224, 0.34323135, -0.4410589, 0, 0.7891913, 0.6141475, 0.5588745, -0.5092832, 0.6544387, -44.454834, 31.79665, 11.726317)
+shadow_enabled = true
 
 [node name="UI" parent="." instance=ExtResource("8_gyumm")]
