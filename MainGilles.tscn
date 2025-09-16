@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://c1k14j84uye1l"]
+[gd_scene load_steps=10 format=3 uid="uid://c1k14j84uye1l"]
 
 [ext_resource type="Script" uid="uid://fjtg3lllegkd" path="res://Scripts/actions.gd" id="1_hmo8j"]
 [ext_resource type="PackedScene" uid="uid://cs2qqivj1fuq1" path="res://Prefab/gris_tungstene.tscn" id="2_psjnh"]
@@ -7,24 +7,24 @@
 [ext_resource type="Script" uid="uid://dyst5n70ckuui" path="res://addons/camera/camera.gd" id="5_cmqx1"]
 [ext_resource type="PackedScene" uid="uid://b6kje5441pb78" path="res://Prefab/donut_saucisse.tscn" id="5_tnbmo"]
 [ext_resource type="PackedScene" uid="uid://ccnkm36j76d8a" path="res://Prefab/table.tscn" id="6_vij0o"]
+[ext_resource type="PackedScene" uid="uid://cinbp3vv0ak4p" path="res://ui.tscn" id="8_gyumm"]
+[ext_resource type="PackedScene" uid="uid://bc6edcwes5xrm" path="res://Prefab/point.tscn" id="9_a3utp"]
 
-[node name="Node3D" type="Node3D" node_paths=PackedStringArray("cubeViolet", "cubeGris", "donutSaucisse", "cylindreTungstene")]
+[node name="Node3D" type="Node3D" node_paths=PackedStringArray("ui")]
 script = ExtResource("1_hmo8j")
-cubeViolet = NodePath("VioletBois")
-cubeGris = NodePath("Grisroche")
-donutSaucisse = NodePath("DonutSaucisse")
-cylindreTungstene = NodePath("GrisTungstene")
+pointPrefab = ExtResource("9_a3utp")
+ui = NodePath("UI")
 
-[node name="GrisTungstene" parent="." instance=ExtResource("2_psjnh")]
+[node name="Cylindre Tungstène" parent="." instance=ExtResource("2_psjnh")]
 transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 0.99999994, 8.05755, 5.98281, -6.711154)
 
-[node name="VioletBois" parent="." instance=ExtResource("3_gyumm")]
+[node name="Cube violet" parent="." instance=ExtResource("3_gyumm")]
 transform = Transform3D(1, 0, 0, 0, 0.9998066, 0.019668592, 0, -0.019668592, 0.9998066, -8.2728, 1.2435508, -5.7600365)
 
-[node name="Grisroche" parent="." instance=ExtResource("4_a3utp")]
+[node name="Cube gris" parent="." instance=ExtResource("4_a3utp")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.355879, 3.1344442, -5.87555)
 
-[node name="DonutSaucisse" parent="." instance=ExtResource("5_tnbmo")]
+[node name="Donut Saucisse" parent="." instance=ExtResource("5_tnbmo")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.99999994, -8.300957, 0.40964746, 9.236284)
 
 [node name="Table" parent="." instance=ExtResource("6_vij0o")]
@@ -36,3 +36,5 @@ script = ExtResource("5_cmqx1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.82925224, 0.34323135, -0.4410589, 0, 0.7891913, 0.6141475, 0.5588745, -0.5092832, 0.6544387, -44.454834, 31.79665, 11.726317)
+
+[node name="UI" parent="." instance=ExtResource("8_gyumm")]
