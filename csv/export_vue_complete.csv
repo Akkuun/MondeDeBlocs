@@ -1,0 +1,8 @@
+OBJET_ID,OBJET_NOM,POS_X,POS_Y,POS_Z,ROT_X,ROT_Y,ROT_Z,SCL_X,SCL_Y,SCL_Z,MATERIAU_NOM,POIDS,OPACITE,COULEUR
+1,Cube1,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,Bois,0.8,1.0,marron
+2,Cube2,5.0,2.0,-3.0,0.0,45.0,0.0,2.0,2.0,2.0,Pierre,2.5,1.0,gris
+3,Cube1,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,Bois,0.8,1.0,marron
+4,Cube2,5.0,2.0,-3.0,0.0,45.0,0.0,2.0,2.0,2.0,Pierre,2.5,1.0,gris
+5,CubeBois,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,Bois,0.8,1.0,marron
+6,SpherePierre,5.0,2.0,-3.0,0.0,45.0,0.0,2.0,2.0,2.0,Pierre,2.5,1.0,gris
+7,CylindreMetal,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,Metal,7.8,1.0,argent

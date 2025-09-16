@@ -1,0 +1,8 @@
+ID,NOM,TRANSFORME_ID,MATERIAU_ID
+1,Cube1,1,1
+2,Cube2,2,2
+3,Cube1,1,1
+4,Cube2,2,2
+5,CubeBois,1,1
+6,SpherePierre,2,2
+7,CylindreMetal,3,3
