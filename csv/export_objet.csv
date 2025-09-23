@@ -1,6 +1,6 @@
 ID,NOM,TRANSFORME_ID,MATERIAU_ID,SUR_ID
-6,GrisTungstene,0,7,4
-7,VioletBois,0,5,3
-8,Grisroche,0,6,
-9,DonutSaucisse,0,8,
-10,Table,0,8,
+21,GrisTungstene,0,19,
+22,VioletBois,0,17,9
+23,Grisroche,0,18,10
+24,DonutSaucisse,0,20,
+25,Table,0,20,

@@ -735,7 +735,7 @@ func create_data_from_scene():
 	# on fait pas 
 
 	# 6. Créer des données Sur pour certains objets.
-	# on sait qu'ils sont tous sur la Talbe sauf le GrisTungstene qui est sur VioletBois
+	# on sait qu'ils sont tous sur la Talbe sauf le Grisroche qui est sur VioletBois
 	print("Création des données Sur...")
 	
 	#donc on selection l'id de VioletBois de la bdd
@@ -747,24 +747,43 @@ func create_data_from_scene():
 	else:
 		print("Aucun objet VioletBois trouvé!")
 	
-	#on selection l'id de GrisTungstene de la bdd
-	var gris_result = db.select_rows("Objet", "nom = 'GrisTungstene'", ["id"])
+	#on selection l'id de Grisroche de la bdd
+	var gris_result = db.select_rows("Objet", "nom = 'Grisroche'", ["id"])
 	var gris_id = -1
 	if gris_result is Array and gris_result.size() > 0:
 		gris_id = gris_result[0]["id"]
-		print("ID de GrisTungstene trouvé: ", gris_id)
+		print("ID de Grisroche trouvé: ", gris_id)
 	else:
-		print("Aucun objet GrisTungstene trouvé!")
+		print("Aucun objet Grisroche trouvé!")
 	
-	# Maintenant on peut créer les entrées Sur
+	# Maintenant on peut créer les entrées Sur et récupérer leurs IDs
+	var violetbois_sur_id = -1
+	var gris_sur_id = -1
+	
 	if violetbois_id > 0:
 		save_sur(violetbois_id, "Sur la table")
+		violetbois_sur_id = db.last_insert_rowid
+		print("Sur ID créé pour VioletBois: ", violetbois_sur_id)
+	
 	if gris_id > 0:
 		save_sur(gris_id, "Sur VioletBois")
+		gris_sur_id = db.last_insert_rowid
+		print("Sur ID créé pour Grisroche: ", gris_sur_id)
 
-	#rajouter la clef étrangère dans les objet 
-
+	# Rajouter les clés étrangères sur_id dans les objets
+	print("Mise à jour des clés étrangères sur_id dans les objets...")
 	
+	if violetbois_id > 0 and violetbois_sur_id > 0:
+		var update_violetbois_query = "UPDATE Objet SET sur_id = ? WHERE id = ?;"
+		var result_violetbois = db.query_with_bindings(update_violetbois_query, [violetbois_sur_id, violetbois_id])
+		print("Clé étrangère sur_id ", violetbois_sur_id, " assignée à VioletBois (objet ID ", violetbois_id, ") - Résultat: ", result_violetbois)
+	
+	if gris_id > 0 and gris_sur_id > 0:
+		var update_gris_query = "UPDATE Objet SET sur_id = ? WHERE id = ?;"
+		var result_gris = db.query_with_bindings(update_gris_query, [gris_sur_id, gris_id])
+		print("Clé étrangère sur_id ", gris_sur_id, " assignée à Grisroche (objet ID ", gris_id, ") - Résultat: ", result_gris)
+	
+	print("✓ Clés étrangères sur_id mises à jour dans les objets")
 	print("✓ Données Sur créées")
 
 
