@@ -1,4 +1,1 @@
 OBJET_ID,OBJET_NOM,POS_X,POS_Y,POS_Z,ROT_X,ROT_Y,ROT_Z,SCL_X,SCL_Y,SCL_Z,MATERIAU_NOM,POIDS,OPACITE,COULEUR,SUR_ID,SUR_TEXTE
-1,CubeBois,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,Bois,0.8,1.0,marron,1,Objet en bois très résistant
-2,SpherePierre,5.0,2.0,-3.0,0.0,45.0,0.0,2.0,2.0,2.0,Pierre,2.5,1.0,gris,2,Pierre sculptée avec des motifs anciens
-3,CylindreMetal,-2.0,3.0,1.0,15.0,0.0,30.0,0.5,0.5,0.5,Metal,7.8,1.0,argent,,

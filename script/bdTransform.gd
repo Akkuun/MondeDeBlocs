@@ -19,9 +19,9 @@ func _ready():
 	print("=== BASE DE DONNÉES INITIALISÉE ===")
 	print("Tables créées et prêtes à l'emploi.")
 	
-	# Créer des données de test pour vérifier l'export
-	print("\n=== CRÉATION DE DONNÉES DE TEST ===")
-	create_sample_data()
+	# Créer des données à partir des objets de la scène
+	print("\n=== CRÉATION DES DONNÉES DE LA SCÈNE ===")
+	create_data_from_scene()
 	
 	print("\n=== EXPORT VERS CSV ===")
 	export_database_to_csv()
@@ -139,16 +139,22 @@ func save_transform(rigidbody: RigidBody3D, materiau_id: int = 1, sur_id: int = 
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 	"""
 	
+	# Conversion explicite en float pour éviter les problèmes de type SQLite
 	var transform_values = [
-		position.x, position.y, position.z,
-		rotation.x, rotation.y, rotation.z,
-		scale.x, scale.y, scale.z
+		float(position.x), float(position.y), float(position.z),
+		float(rotation.x), float(rotation.y), float(rotation.z),
+		float(scale.x), float(scale.y), float(scale.z)
 	]
 	
-	db.query_with_bindings(insert_transform_query, transform_values)
+	print("DEBUG: Transform values:", transform_values)
+	print("DEBUG: Types:", [typeof(transform_values[0]), typeof(transform_values[1]), typeof(transform_values[2])])
+	
+	var result_transform = db.query_with_bindings(insert_transform_query, transform_values)
+	print("DEBUG: Résultat insertion Transform:", result_transform)
 	
 	# Récupération de l'ID de la transformation insérée
 	var transform_id = db.last_insert_rowid
+	print("DEBUG: Transform ID inséré:", transform_id)
 	
 	# Insertion dans la table Objet avec les clés étrangères
 	var insert_objet_query
@@ -167,7 +173,8 @@ func save_transform(rigidbody: RigidBody3D, materiau_id: int = 1, sur_id: int = 
 		"""
 		objet_values = [rigidbody.name, transform_id, materiau_id]
 	
-	db.query_with_bindings(insert_objet_query, objet_values)
+	var result_objet = db.query_with_bindings(insert_objet_query, objet_values)
+	print("DEBUG: Résultat insertion Objet:", result_objet)
 	
 	var sur_info = " (sur_id: " + str(sur_id) + ")" if sur_id > 0 else ""
 	print("Transform et Objet sauvegardés pour : ", rigidbody.name, " (transform_id: ", transform_id, ", materiau_id: ", materiau_id, ")", sur_info)
@@ -222,11 +229,13 @@ func load_transforms():
 	return result
 
 func load_objets():
-	var select_query = "SELECT * FROM Objet ORDER BY id DESC;"
-	var result = db.query(select_query)
+	var result = db.select_rows("Objet", "", ["*"])
 	
-	for row in result:
-		print("Objet ID: ", row["id"], " - Nom: ", row["nom"], " -> Transform ID: ", row["transforme_id"], ", Matériau ID: ", row["materiau_id"])
+	if result is Array and result.size() > 0:
+		for row in result:
+			print("Objet ID: ", row["id"], " - Nom: ", row["nom"], " -> Transform ID: ", row["transforme_id"], ", Matériau ID: ", row["materiau_id"])
+	else:
+		print("Aucun objet trouvé dans la table Objet")
 	
 	return result
 
@@ -265,6 +274,31 @@ func save_sur(objet_id: int, texte: String):
 	db.query_with_bindings(insert_sur_query, values)
 	print("Donnée Sur sauvegardée : objet_id=", objet_id, ", texte='", texte, "'")
 
+func save_objects_without_foreign_keys():
+	print("=== SAUVEGARDE DES OBJETS SANS CLÉS ÉTRANGÈRES ===")
+	
+	var rigidbodies = [] 
+	get_all_rigidbodies(get_tree().get_root(), rigidbodies)
+	
+	if rigidbodies.size() == 0:
+		print("Aucun RigidBody trouvé dans la scène")
+		return
+	
+	for body in rigidbodies:
+		print("RigidBody trouvé : ", body.name)
+		
+		# Sauvegarder uniquement le nom de l'objet sans clés étrangères
+		var object_name = str(body.name).replace("'", "''")  # Échapper les apostrophes
+		var insert_objet_query = "INSERT INTO Objet (nom, transforme_id, materiau_id) VALUES ('" + object_name + "', 0, 0);"
+		
+		print("DEBUG: Requête SQL:", insert_objet_query)
+		var result_objet = db.query(insert_objet_query)
+		print("DEBUG: Résultat insertion Objet:", result_objet)
+		
+		print("Objet sauvegardé sans clés étrangères : ", body.name)
+	
+	print("✓ ", rigidbodies.size(), " objets sauvegardés sans clés étrangères")
+
 func load_surs():
 	var select_query = "SELECT * FROM Sur ORDER BY id DESC;"
 	var result = db.query(select_query)
@@ -276,61 +310,49 @@ func load_surs():
 	
 	return result
 
-func create_default_materials():
-	print("=== CRÉATION DES MATÉRIAUX PAR DÉFAUT ===")
-	
-	# Vérifier si des matériaux existent déjà
-	var check_query = "SELECT COUNT(*) as count FROM Materiau;"
-	var result = db.query(check_query)
-	print("Résultat de la vérification des matériaux: ", result)
-	
-	var need_to_create = false
-	
-	if result is Array and result.size() > 0:
-		var count = result[0]["count"]
-		print("Nombre de matériaux existants: ", count)
-		if count == 0:
-			need_to_create = true
-	else:
-		# Si la requête ne retourne pas un Array, assumons qu'il faut créer les matériaux
-		print("Résultat de requête inattendu, création des matériaux par défaut")
-		need_to_create = true
-	
-	if need_to_create:
-		print("Création des matériaux par défaut...")
-		save_materiau("Bois", 0.8, 1.0, "marron")
-		save_materiau("Pierre", 2.5, 1.0, "gris")
-		save_materiau("Metal", 7.8, 1.0, "argent")
-		save_materiau("Defaut", 1.0, 1.0, "blanc")
-		print("✓ Matériaux par défaut créés")
-	else:
-		print("Les matériaux existent déjà, pas besoin de les créer")
+
 
 func get_materiau_id_for_object(object_name: String) -> int:
-	# Logique simple pour assigner des matériaux basés sur le nom
-	var materiau_name = "Defaut"
+	print("DEBUG: Recherche matériau pour l'objet '", object_name, "'")
 	
-	if "Bois" in object_name or "Violet" in object_name:
-		materiau_name = "Bois"
-	elif "roche" in object_name or "Gris" in object_name:
-		materiau_name = "Pierre"
-	elif "Metal" in object_name:
-		materiau_name = "Metal"
+	# Lister d'abord tous les matériaux disponibles
+	var all_materiaux = db.query("SELECT id, nom FROM Materiau;")
+	print("DEBUG: Tous les matériaux disponibles:", all_materiaux)
+	print("DEBUG: Type de all_materiaux:", typeof(all_materiaux))
 	
-	# Récupérer l'ID du matériau
-	var query = "SELECT id FROM Materiau WHERE nom = ? LIMIT 1;"
-	var result = db.query_with_bindings(query, [materiau_name])
+	# Essayer avec select_rows au lieu de query_with_bindings
+	var materiaux_result = db.select_rows("Materiau", "nom = '" + object_name + "'", ["id", "nom"])
+	print("DEBUG: Résultat select_rows pour '", object_name, "':", materiaux_result)
+	print("DEBUG: Type de materiaux_result:", typeof(materiaux_result))
 	
-	if result is Array and result.size() > 0:
-		return result[0]["id"]
+	if materiaux_result is Array and materiaux_result.size() > 0:
+		var materiau_id = materiaux_result[0]["id"]
+		print("Matériau trouvé pour l'objet '", object_name, "': ID ", materiau_id)
+		return materiau_id
 	else:
-		# Retourner l'ID du matériau par défaut (devrait être 4)
-		var default_query = "SELECT id FROM Materiau WHERE nom = 'Defaut' LIMIT 1;"
-		var default_result = db.query(default_query)
+		print("Aucun matériau trouvé pour l'objet '", object_name, "', recherche du matériau par défaut...")
+		
+		# Rechercher le matériau "Defaut" avec select_rows
+		var default_result = db.select_rows("Materiau", "nom = 'Defaut'", ["id"])
+		print("DEBUG: Résultat recherche Defaut avec select_rows:", default_result)
+		
 		if default_result is Array and default_result.size() > 0:
-			return default_result[0]["id"]
+			var default_id = default_result[0]["id"]
+			print("Utilisation du matériau par défaut 'Defaut': ID ", default_id)
+			return default_id
 		else:
-			return 1  # Fallback au premier matériau
+			print("Aucun matériau 'Defaut' trouvé, utilisation du premier matériau disponible")
+			# Prendre le premier matériau disponible avec select_rows
+			var any_result = db.select_rows("Materiau", "", ["id"])
+			print("DEBUG: Premier matériau disponible:", any_result)
+			
+			if any_result is Array and any_result.size() > 0:
+				var any_id = any_result[0]["id"]
+				print("Utilisation du premier matériau disponible: ID ", any_id)
+				return any_id
+			else:
+				print("ERREUR: Aucun matériau trouvé dans la base!")
+				return 1  # Fallback absolu
 
 func pad_string(text: String, length: int) -> String:
 	var result = text
@@ -669,35 +691,84 @@ func export_database_to_csv():
 	print("- csv/export_objet.csv")
 	print("- csv/export_sur.csv")
 	print("- csv/export_vue_complete.csv")
+	
 
-func create_sample_data():
-	print("=== CRÉATION DE DONNÉES D'EXEMPLE ===")
+func create_data_from_scene():
+	print("=== CRÉATION DES DONNÉES À PARTIR DE LA SCÈNE ===")
+
+	clear_all_data();
+
 	
-	# Créer quelques matériaux d'exemple
-	create_default_materials()
+	# 1. Créer uniquement les objets sans clés étrangères
+	print("Création des objets sans clés étrangères...")
+	save_objects_without_foreign_keys()
+	print("✓ Objets créés sans clés étrangères")
 	
-	# Ajouter quelques transformations d'exemple
-	print("Ajout de transformations d'exemple...")
-	var transform1_result = db.query("INSERT INTO Transforme (position_x, position_y, position_z, rotation_x, rotation_y, rotation_z, scale_x, scale_y, scale_z) VALUES (0, 0, 0, 0, 0, 0, 1, 1, 1)")
-	var transform2_result = db.query("INSERT INTO Transforme (position_x, position_y, position_z, rotation_x, rotation_y, rotation_z, scale_x, scale_y, scale_z) VALUES (5, 2, -3, 0, 45, 0, 2, 2, 2)")
-	var transform3_result = db.query("INSERT INTO Transforme (position_x, position_y, position_z, rotation_x, rotation_y, rotation_z, scale_x, scale_y, scale_z) VALUES (-2, 3, 1, 15, 0, 30, 0.5, 0.5, 0.5)")
-	print("Transform insertions: ", transform1_result, ", ", transform2_result, ", ", transform3_result)
+	# 2. Créé la table matériau et ajouter a objet le matériau qui lui correspond
+	print("Création des matériaux...")
+	save_materiau("VioletBois", 2.5, 0.8, "Violet")
+	save_materiau("Grisroche", 7.8, 0.5, "Gris")
+	save_materiau("GrisTungstene", 1.2, 0.9, "Metal")
+	save_materiau("Defaut", 1.0, 1.0, "Transparent")  # Matériau par défaut
+	print("✓ Matériaux créés")
+
+	# 3. Charger les objets pour obtenir leurs IDs
+	print("Chargement des objets pour assignation des matériaux...")
+	var objets = load_objets()
+	print("✓ ", objets.size(), " objets chargés")
+
+	# 4. Assigner les matériaux aux objets
+	print("Assignation des matériaux aux objets...")
+	for objet in objets:
+		var materiau_id = get_materiau_id_for_object(objet["nom"])
+		var update_query = "UPDATE Objet SET materiau_id = ? WHERE id = ?;"
+		db.query_with_bindings(update_query, [materiau_id, objet["id"]])
+		print("Matériau ID ", materiau_id, " assigné à l'objet ID ", objet["id"])
+	print("✓ Matériaux assignés aux objets")
+
+	# 5. Sauvegarder les transformations de tous les RigidBody dans la scène
+	print("Sauvegarde des transformations de tous les RigidBody dans la scène...")
+	save_all_rigidbodies()
+	print("✓ Transformations sauvegardées")
+
+	#relier les transformation au bon objet 
+	# on fait pas 
+
+	# 6. Créer des données Sur pour certains objets.
+	# on sait qu'ils sont tous sur la Talbe sauf le GrisTungstene qui est sur VioletBois
+	print("Création des données Sur...")
 	
-	# Ajouter quelques données Sur d'exemple d'abord
-	print("Ajout de données Sur d'exemple...")
-	save_sur(1, "Objet en bois très résistant")
-	save_sur(2, "Pierre sculptée avec des motifs anciens")
-	save_sur(3, "Cylindre métallique avec surface polie")
-	save_sur(1, "Texture rugueuse visible sur les côtés")
+	#donc on selection l'id de VioletBois de la bdd
+	var violetbois_result = db.select_rows("Objet", "nom = 'VioletBois'", ["id"])
+	var violetbois_id = -1
+	if violetbois_result is Array and violetbois_result.size() > 0:
+		violetbois_id = violetbois_result[0]["id"]
+		print("ID de VioletBois trouvé: ", violetbois_id)
+	else:
+		print("Aucun objet VioletBois trouvé!")
 	
-	# Ajouter quelques objets d'exemple (certains avec des liens vers Sur)
-	print("Ajout d'objets d'exemple...")
-	var objet1_result = db.query("INSERT INTO Objet (nom, transforme_id, materiau_id, sur_id) VALUES ('CubeBois', 1, 1, 1)")
-	var objet2_result = db.query("INSERT INTO Objet (nom, transforme_id, materiau_id, sur_id) VALUES ('SpherePierre', 2, 2, 2)")
-	var objet3_result = db.query("INSERT INTO Objet (nom, transforme_id, materiau_id) VALUES ('CylindreMetal', 3, 3)")
-	print("Object insertions: ", objet1_result, ", ", objet2_result, ", ", objet3_result)
+	#on selection l'id de GrisTungstene de la bdd
+	var gris_result = db.select_rows("Objet", "nom = 'GrisTungstene'", ["id"])
+	var gris_id = -1
+	if gris_result is Array and gris_result.size() > 0:
+		gris_id = gris_result[0]["id"]
+		print("ID de GrisTungstene trouvé: ", gris_id)
+	else:
+		print("Aucun objet GrisTungstene trouvé!")
 	
-	print("✓ Données d'exemple créées")
+	# Maintenant on peut créer les entrées Sur
+	if violetbois_id > 0:
+		save_sur(violetbois_id, "Sur la table")
+	if gris_id > 0:
+		save_sur(gris_id, "Sur VioletBois")
+
+	#rajouter la clef étrangère dans les objet 
+
+	
+	print("✓ Données Sur créées")
+
+
+
 
 func clear_all_data():
 	print("=== SUPPRESSION DE TOUTES LES DONNÉES ===")

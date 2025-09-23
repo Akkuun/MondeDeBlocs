@@ -1,4 +1,6 @@
 ID,NOM,TRANSFORME_ID,MATERIAU_ID,SUR_ID
-1,CubeBois,1,1,1
-2,SpherePierre,2,2,2
-3,CylindreMetal,3,3,
+6,GrisTungstene,0,7,4
+7,VioletBois,0,5,3
+8,Grisroche,0,6,
+9,DonutSaucisse,0,8,
+10,Table,0,8,
