@@ -60,6 +60,115 @@ def load_materials_data():
     }
     return load_csv_data('materiau.csv', converters)
 
+def get_objects_on_top(obj_id, objects_data):
+    """
+    Get all objects that are directly on top of the given object
+    
+    Args:
+        obj_id (int): ID of the object to check
+        objects_data (list): List of object dictionaries
+    
+    Returns:
+        list: List of objects that are on top of this object
+    """
+    return [obj for obj in objects_data if obj['SUR_ID'] == obj_id]
+
+def peut_etre_deplace(obj_id, objects_data):
+    """
+    Returns True if the object can be moved
+    Conditions: object is not the table AND object has nothing on top of it
+    
+    Args:
+        obj_id (int): ID of the object to check
+        objects_data (list): List of object dictionaries
+    
+    Returns:
+        bool: True if object can be moved
+    """
+    # Find the object
+    obj = next((o for o in objects_data if o['ID'] == obj_id), None)
+    if not obj:
+        return False
+    
+    # Cannot move if it's a table
+    if obj['FORME'].strip().upper() == 'TABLE':
+        return False
+    
+    # Cannot move if something is on top of it
+    objects_on_top = get_objects_on_top(obj_id, objects_data)
+    return len(objects_on_top) == 0
+
+def peut_etre_couche(obj_id, objects_data):
+    """
+    Returns True if the object can be laid down
+    Conditions: object is not the table AND object has nothing on top of it AND object is not a cube
+    
+    Args:
+        obj_id (int): ID of the object to check
+        objects_data (list): List of object dictionaries
+    
+    Returns:
+        bool: True if object can be laid down
+    """
+    # Find the object
+    obj = next((o for o in objects_data if o['ID'] == obj_id), None)
+    if not obj:
+        return False
+    
+    # Cannot lay down if it's a table
+    if obj['FORME'].strip().upper() == 'TABLE':
+        return False
+    
+    # Cannot lay down if it's a cube
+    if obj['FORME'].strip().upper() == 'CUBE':
+        return False
+    
+    # Cannot lay down if something is on top of it
+    objects_on_top = get_objects_on_top(obj_id, objects_data)
+    return len(objects_on_top) == 0
+
+def peut_recevoir_deplacement(obj_id, objects_data):
+    """
+    Returns True if the object can receive another object on top of it
+    Conditions: 
+    - object is the table OR
+    - object is a cylinder and is standing up OR  
+    - object is a donut saucisse and laying down OR
+    - object is a cube that has nothing on top of it
+    
+    Args:
+        obj_id (int): ID of the object to check
+        objects_data (list): List of object dictionaries
+    
+    Returns:
+        bool: True if object can receive another object
+    """
+    # Find the object
+    obj = next((o for o in objects_data if o['ID'] == obj_id), None)
+    if not obj:
+        return False
+    
+    forme = obj['FORME'].strip().upper()
+    
+    # Table can always receive objects
+    if forme == 'TABLE':
+        return True
+    
+    # Cylinder can receive objects if standing up (not couché)
+    if forme == 'CYLINDRE' and not obj['COUCHE']:
+        return True
+    
+    # Donut saucisse can receive objects if laying down (couché)
+    if forme == 'DONUT_SAUCISSE' and obj['COUCHE']:
+        return True
+    
+    # Cube can receive objects if nothing is on top of it
+    if forme == 'CUBE':
+        objects_on_top = get_objects_on_top(obj_id, objects_data)
+        return len(objects_on_top) == 0
+    
+    return False
+
 # Load start and final object datasets
 start_objects_data = load_objects_data('start_objet.csv')
 final_objects_data = load_objects_data('final_objet.csv')
@@ -91,3 +200,31 @@ for start_obj, final_obj in zip(start_objects_data, final_objects_data):
             print(f"Object {start_obj['ID']} ({start_obj['NOM']}): {', '.join(changes)}")
         else:
             print(f"Object {start_obj['ID']} ({start_obj['NOM']}): No changes")
+
+print("\n=== MOVEMENT CAPABILITIES ANALYSIS ===")
+
+def test_movement_functions(objects_data, dataset_name):
+    print(f"\n--- {dataset_name} ---")
+    for obj in objects_data:
+        obj_id = obj['ID']
+        nom = obj['NOM']
+        
+        peut_deplacer = peut_etre_deplace(obj_id, objects_data)
+        peut_coucher = peut_etre_couche(obj_id, objects_data)
+        peut_recevoir = peut_recevoir_deplacement(obj_id, objects_data)
+        
+        print(f"Object {obj_id} ({nom}):")
+        print(f"  - Peut être déplacé: {peut_deplacer}")
+        print(f"  - Peut être couché: {peut_coucher}")
+        print(f"  - Peut recevoir un objet: {peut_recevoir}")
+        
+        # Show what's on top
+        objects_on_top = get_objects_on_top(obj_id, objects_data)
+        if objects_on_top:
+            names_on_top = [o['NOM'] for o in objects_on_top]
+            print(f"  - Objets dessus: {', '.join(names_on_top)}")
+        else:
+            print(f"  - Objets dessus: Aucun")
+
+test_movement_functions(start_objects_data, "START DATASET")
+test_movement_functions(final_objects_data, "FINAL DATASET")

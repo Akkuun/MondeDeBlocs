@@ -2,5 +2,5 @@ ID,NOM,MATERIAU_ID,SUR_ID,COUCHE,FORME
 21,Cylindre Tungstène,3,24,False, CYLINDRE
 22,Cube violet,1,22,False, CUBE
 23,Cube gris,2,25,False, CUBE
-24,Donut Saucisse,4,24,True, DONUT_SAUCISSE
+24,Donut Saucisse,4,25,True, DONUT_SAUCISSE
 25,Table,24,0,False, TABLE
