@@ -1,5 +1,6 @@
-ID,NOM,POIDS,OPACITE,COULEUR
-17,VioletBois,2.5,0.8,Violet
-18,Grisroche,7.8,0.5,Gris
-19,GrisTungstene,1.2,0.9,Metal
-20,Defaut,1.0,1.0,Transparent
+ID,NOM,POIDS,OPACITE,COULEUR,MATERIAU
+1,VioletBois,2.5,1.0,Violet,Bois
+2,Grisroche,7.8,1.0,Gris,Roche
+3,GrisTungstene,1.2,1.0,Metal,Metal
+4,RougeSaucisse,20.0,1.0,Rouge,Metal
+5,Defaut,1.0,1.0,Transparent,Plastique

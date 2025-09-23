@@ -1,6 +1,6 @@
-ID,NOM,TRANSFORME_ID,MATERIAU_ID,SUR_ID
-21,GrisTungstene,0,19,
-22,VioletBois,0,17,9
-23,Grisroche,0,18,10
-24,DonutSaucisse,0,20,
-25,Table,0,20,
+ID,NOM,MATERIAU_ID,SUR_ID
+21,Cylindre Tungstène,3,25
+22,Cube violet,1,25
+23,Cube gris,2,22
+24,Donut Saucisse,4,24
+25,Table,24,0

@@ -1,6 +1,5 @@
-[gd_scene load_steps=10 format=3 uid="uid://c1k14j84uye1l"]
+[gd_scene load_steps=8 format=3 uid="uid://c1k14j84uye1l"]
 
-[ext_resource type="Script" uid="uid://fjtg3lllegkd" path="res://Scripts/actions.gd" id="1_hmo8j"]
 [ext_resource type="PackedScene" uid="uid://cs2qqivj1fuq1" path="res://Prefab/gris_tungstene.tscn" id="2_psjnh"]
 [ext_resource type="PackedScene" uid="uid://dj62aklrv0jsb" path="res://Prefab/violet_bois.tscn" id="3_gyumm"]
 [ext_resource type="PackedScene" uid="uid://cgcn3q2jjrvmv" path="res://Prefab/grisroche.tscn" id="4_a3utp"]
@@ -8,12 +7,8 @@
 [ext_resource type="PackedScene" uid="uid://b6kje5441pb78" path="res://Prefab/donut_saucisse.tscn" id="5_tnbmo"]
 [ext_resource type="PackedScene" uid="uid://ccnkm36j76d8a" path="res://Prefab/table.tscn" id="6_vij0o"]
 [ext_resource type="PackedScene" uid="uid://cinbp3vv0ak4p" path="res://ui.tscn" id="8_gyumm"]
-[ext_resource type="PackedScene" uid="uid://bc6edcwes5xrm" path="res://Prefab/point.tscn" id="9_a3utp"]
 
-[node name="Node3D" type="Node3D" node_paths=PackedStringArray("ui")]
-script = ExtResource("1_hmo8j")
-pointPrefab = ExtResource("9_a3utp")
-ui = NodePath("UI")
+[node name="Node3D" type="Node3D"]
 
 [node name="Cylindre Tungstène" parent="." instance=ExtResource("2_psjnh")]
 transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 0.99999994, 8.058, 3.55, -6.711)
