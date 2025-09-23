@@ -10,7 +10,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.99999994, 0, 0, 0)
 center_of_mass_mode = 1
 center_of_mass = Vector3(0, 1.45, 0)
 
-[node name="DonutSaucisseMesh" type="MeshInstance3D" parent="."]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = ExtResource("1_stq5s")
 skeleton = NodePath("../..")
 

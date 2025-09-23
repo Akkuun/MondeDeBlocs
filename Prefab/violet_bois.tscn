@@ -24,7 +24,7 @@ points = PackedVector3Array(0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 
 [node name="VioletBois" type="RigidBody3D"]
 transform = Transform3D(1, 0, 0, 0, 0.9998066, 0.019668592, 0, -0.019668592, 0.9998066, 0, 0, 0)
 
-[node name="VioletBoisMesh" type="MeshInstance3D" parent="."]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("ArrayMesh_f4ffi")
 skeleton = NodePath("../..")
 

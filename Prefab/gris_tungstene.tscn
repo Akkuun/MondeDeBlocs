@@ -22,11 +22,11 @@ points = PackedVector3Array(-0.5, -1, -9.787083e-05, -0.35356304, -1, -0.3535630
 [node name="GrisTungstene" type="RigidBody3D"]
 transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 0.99999994, 0, 0, 0)
 
-[node name="GrisTungsteneMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0, 0)
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0)
 mesh = SubResource("ArrayMesh_a3utp")
 skeleton = NodePath("../..")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("ConvexPolygonShape3D_cmqx1")

@@ -70,8 +70,15 @@ func move_above() -> void:
 	# obj1 and obj2 top must be empty (to do later)
 	var node = obj1
 	var target = obj2
+	
+	node.lock_rotation = true
 
 	var targetPos = target.get_position()
+	if target.name == "Donut Saucisse" || target.name == "DonutSaucisse":
+		if target.has_node("HolePos"):
+			var hole = target.get_node("HolePos")
+			targetPos = hole.global_transform.origin
+			print("Using HolePos for Donut Saucisse")
 	var endPos = Vector3(targetPos.x, targetPos.y + 5, targetPos.z)
 	var tween = create_tween()
 	tween.tween_property(node, "position", endPos, 0.5)
@@ -82,6 +89,8 @@ func move_above() -> void:
 func put_down() -> void:
 	var node = obj1
 	
+	node.lock_rotation = false
+	
 	node.apply_torque_impulse(Vector3(10, 0, 0))
 
 	clear_selection()
@@ -89,6 +98,8 @@ func put_down() -> void:
 # hard resets the object orientation
 func get_up() -> void:
 	var node = obj1
+	
+	node.lock_rotation = true
 	
 	var basis = node.global_transform.basis
 	basis = Basis(Vector3(1, 0, 0), 0) * Basis(Vector3(0, 1, 0), 0) * Basis(Vector3(0, 0, 1), 0)

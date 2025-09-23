@@ -29,7 +29,7 @@ sleeping = true
 can_sleep = false
 freeze = true
 
-[node name="CSGBakedMeshInstance3D" type="MeshInstance3D" parent="."]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.47907364, 0)
 mesh = SubResource("ArrayMesh_b0rlo")
 
