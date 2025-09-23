@@ -70,6 +70,10 @@ func move_above() -> void:
 	# obj1 and obj2 top must be empty (to do later)
 	var node = obj1
 	var target = obj2
+
+	if node == null or target == null:
+		print("Both objects must be selected")
+		return
 	
 	node.lock_rotation = true
 
@@ -88,6 +92,10 @@ func move_above() -> void:
 # pushes the object to make it fall
 func put_down() -> void:
 	var node = obj1
+
+	if node == null:
+		print("Object 1 must be selected")
+		return
 	
 	node.lock_rotation = false
 	
@@ -98,6 +106,10 @@ func put_down() -> void:
 # hard resets the object orientation
 func get_up() -> void:
 	var node = obj1
+
+	if node == null:
+		print("Object 1 must be selected")
+		return
 	
 	node.lock_rotation = true
 	
