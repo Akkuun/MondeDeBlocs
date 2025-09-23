@@ -1,10 +1,22 @@
-[gd_scene load_steps=3 format=4 uid="uid://ccnkm36j76d8a"]
+[gd_scene load_steps=7 format=4 uid="uid://ccnkm36j76d8a"]
+
+[ext_resource type="Texture2D" uid="uid://bj0hm2d2hxu3i" path="res://Textures/oak/Poliigon_WoodVeneerOak_7760_BaseColor.jpg" id="1_goj2a"]
+[ext_resource type="Texture2D" uid="uid://cqqwmg0jqgljx" path="res://Textures/oak/Poliigon_WoodVeneerOak_7760_Normal.png" id="2_so4q5"]
+[ext_resource type="Texture2D" uid="uid://dhwg3caecbbkn" path="res://Textures/oak/Poliigon_WoodVeneerOak_7760_Roughness.jpg" id="3_mmogo"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c1dy8"]
+albedo_texture = ExtResource("1_goj2a")
+roughness_texture = ExtResource("3_mmogo")
+normal_enabled = true
+normal_texture = ExtResource("2_so4q5")
+uv1_scale = Vector3(2.5, 2.5, 2.5)
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_psjnh"]
 _surfaces = [{
 "aabb": AABB(-0.5, -0.5, -0.5, 1, 1, 1),
 "attribute_data": PackedByteArray("AACAPwAAgD8AAIA/AAAAAAAAAAAAAAAAAACAPwAAgD8AAIA/AAAAAAAAAAAAAAAAAACAPwAAgD8AAIA/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAIA/AAAAAAAAAAAAAAAAAACAPwAAgD8AAIA/AAAAAAAAAAAAAAAAAACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAIA/"),
 "format": 34359738391,
+"material": SubResource("StandardMaterial3D_c1dy8"),
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),
 "vertex_count": 36,

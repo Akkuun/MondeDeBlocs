@@ -1,10 +1,15 @@
-[gd_scene load_steps=5 format=4 uid="uid://dj62aklrv0jsb"]
+[gd_scene load_steps=7 format=4 uid="uid://dj62aklrv0jsb"]
 
-[ext_resource type="Texture2D" uid="uid://d4m06xgu1maqd" path="res://Textures/wood.png" id="1_qd421"]
+[ext_resource type="Texture2D" uid="uid://bj0hm2d2hxu3i" path="res://Textures/oak/Poliigon_WoodVeneerOak_7760_BaseColor.jpg" id="1_x20xu"]
+[ext_resource type="Texture2D" uid="uid://cqqwmg0jqgljx" path="res://Textures/oak/Poliigon_WoodVeneerOak_7760_Normal.png" id="2_y57rx"]
+[ext_resource type="Texture2D" uid="uid://dhwg3caecbbkn" path="res://Textures/oak/Poliigon_WoodVeneerOak_7760_Roughness.jpg" id="3_afvs2"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cm0pq"]
-albedo_color = Color(0.95916086, 0.34396598, 0.9877263, 1)
-albedo_texture = ExtResource("1_qd421")
+albedo_color = Color(0.76044345, 0.025499672, 0.7932613, 1)
+albedo_texture = ExtResource("1_x20xu")
+roughness_texture = ExtResource("3_afvs2")
+normal_enabled = true
+normal_texture = ExtResource("2_y57rx")
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_f4ffi"]
 _surfaces = [{

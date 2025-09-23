@@ -1,9 +1,20 @@
-[gd_scene load_steps=5 format=4 uid="uid://cgcn3q2jjrvmv"]
+[gd_scene load_steps=9 format=4 uid="uid://cgcn3q2jjrvmv"]
 
-[ext_resource type="Texture2D" uid="uid://bwgru74gwvwcc" path="res://Textures/rock.png" id="1_3r05q"]
+[ext_resource type="Texture2D" uid="uid://djt7xhepp7nha" path="res://Textures/stonebricks/StoneBricksSplitface001_COL_2K.jpg" id="1_1oxe5"]
+[ext_resource type="Texture2D" uid="uid://cn14kpqe4aujf" path="res://Textures/stonebricks/StoneBricksSplitface001_REFL_2K.jpg" id="2_701ss"]
+[ext_resource type="Texture2D" uid="uid://xfsq2ho6q6yv" path="res://Textures/stonebricks/StoneBricksSplitface001_AO_2K.jpg" id="2_gw7ak"]
+[ext_resource type="Texture2D" uid="uid://cpaqfhukhs3eu" path="res://Textures/stonebricks/StoneBricksSplitface001_GLOSS_2K.jpg" id="3_gw7ak"]
+[ext_resource type="Texture2D" uid="uid://jq0s47sbhk2g" path="res://Textures/stonebricks/StoneBricksSplitface001_NRM_2K.jpg" id="4_g57os"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fos0i"]
-albedo_texture = ExtResource("1_3r05q")
+albedo_texture = ExtResource("1_1oxe5")
+metallic = 1.0
+metallic_texture = ExtResource("2_701ss")
+roughness_texture = ExtResource("3_gw7ak")
+normal_enabled = true
+normal_texture = ExtResource("4_g57os")
+ao_enabled = true
+ao_texture = ExtResource("2_gw7ak")
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_cmqx1"]
 _surfaces = [{

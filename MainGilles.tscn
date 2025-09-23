@@ -36,6 +36,12 @@ script = ExtResource("5_cmqx1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.82925224, 0.34323135, -0.4410589, 0, 0.7891913, 0.6141475, 0.5588745, -0.5092832, 0.6544387, -44.454834, 31.79665, 11.726317)
+light_energy = 0.5
+shadow_enabled = true
+
+[node name="DirectionalLight3D2" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.4076014, 0.8995976, -0.15679751, 0.3432313, 0.31004804, 0.88660175, 0.8461994, 0.3075623, -0.4351461, 32.646915, 25.635834, -114.55739)
+light_energy = 0.5
 shadow_enabled = true
 
 [node name="UI" parent="." instance=ExtResource("8_gyumm")]

@@ -1,8 +1,17 @@
-[gd_scene load_steps=4 format=4 uid="uid://cs2qqivj1fuq1"]
+[gd_scene load_steps=8 format=4 uid="uid://cs2qqivj1fuq1"]
+
+[ext_resource type="Texture2D" uid="uid://fguo3o0xd6f2" path="res://Textures/metal/Poliigon_MetalSteelBrushed_7174_BaseColor.jpg" id="1_61cbv"]
+[ext_resource type="Texture2D" uid="uid://7uslt7n7wg8p" path="res://Textures/metal/Poliigon_MetalSteelBrushed_7174_Metallic.jpg" id="2_k8yjy"]
+[ext_resource type="Texture2D" uid="uid://dqpcsf8tyjv5s" path="res://Textures/metal/Poliigon_MetalSteelBrushed_7174_Normal.png" id="3_ckyq0"]
+[ext_resource type="Texture2D" uid="uid://c224nmyrfb6oj" path="res://Textures/metal/Poliigon_MetalSteelBrushed_7174_Roughness.jpg" id="4_peb15"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3dxm6"]
-albedo_color = Color(0.5663556, 0.5663556, 0.5663555, 1)
+albedo_texture = ExtResource("1_61cbv")
 metallic = 1.0
+metallic_texture = ExtResource("2_k8yjy")
+roughness_texture = ExtResource("4_peb15")
+normal_enabled = true
+normal_texture = ExtResource("3_ckyq0")
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_a3utp"]
 _surfaces = [{
