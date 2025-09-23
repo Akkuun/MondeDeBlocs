@@ -1,0 +1,63 @@
+[gd_scene load_steps=2 format=3 uid="uid://cinbp3vv0ak4p"]
+
+[ext_resource type="Script" uid="uid://b4ruv3wq7iasy" path="res://ui.gd" id="1_fyqef"]
+
+[node name="UI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_fyqef")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="LabelSelect1" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Objet 1 :"
+
+[node name="Obj1" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = " "
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="LabelSelect2" type="Label" parent="VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Objet 2 :"
+
+[node name="Obj2" type="Label" parent="VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = " "
+
+[node name="HBoxContainer3" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+text = "Déplacer au dessus (Objet 1 -> 2)"
+
+[node name="Button2" type="Button" parent="VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+text = "Faire tomber (Objet 1)"
+
+[node name="Button3" type="Button" parent="VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+text = "Remettre debout (Objet 1)"
+
+[node name="Label" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5427329, 0.5427329, 0.54273283, 1)
+text = "Clic for Obj1, Shift+clic for Obj2"
+
+[connection signal="button_down" from="VBoxContainer/HBoxContainer3/Button" to="." method="_on_button_button_down"]
+[connection signal="button_down" from="VBoxContainer/HBoxContainer3/Button2" to="." method="_on_button_faire_tomber"]
+[connection signal="button_down" from="VBoxContainer/HBoxContainer3/Button3" to="." method="_on_button_remettre_debout"]
