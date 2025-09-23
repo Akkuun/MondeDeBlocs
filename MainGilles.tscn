@@ -16,7 +16,7 @@ pointPrefab = ExtResource("9_a3utp")
 ui = NodePath("UI")
 
 [node name="Cylindre Tungstène" parent="." instance=ExtResource("2_psjnh")]
-transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 0.99999994, 8.05755, 5.98281, -6.711154)
+transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 0.99999994, 8.058, 3.52, -6.711)
 
 [node name="Cube violet" parent="." instance=ExtResource("3_gyumm")]
 transform = Transform3D(1, 0, 0, 0, 0.9998066, 0.019668592, 0, -0.019668592, 0.9998066, -8.2728, 1.2435508, -5.7600365)
