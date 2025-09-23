@@ -1,8 +1,4 @@
-ID,NOM,TRANSFORME_ID,MATERIAU_ID
-1,Cube1,1,1
-2,Cube2,2,2
-3,Cube1,1,1
-4,Cube2,2,2
-5,CubeBois,1,1
-6,SpherePierre,2,2
-7,CylindreMetal,3,3
+ID,NOM,TRANSFORME_ID,MATERIAU_ID,SUR_ID
+1,CubeBois,1,1,1
+2,SpherePierre,2,2,2
+3,CylindreMetal,3,3,

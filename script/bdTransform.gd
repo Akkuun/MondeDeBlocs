@@ -92,8 +92,10 @@ func init_database():
 		nom TEXT NOT NULL,
 		transforme_id INTEGER NOT NULL,
 		materiau_id INTEGER NOT NULL,
+		sur_id INTEGER,
 		FOREIGN KEY (transforme_id) REFERENCES Transforme(id),
-		FOREIGN KEY (materiau_id) REFERENCES Materiau(id)
+		FOREIGN KEY (materiau_id) REFERENCES Materiau(id),
+		FOREIGN KEY (sur_id) REFERENCES Sur(id)
 	);
 	"""
 	
@@ -103,10 +105,27 @@ func init_database():
 	else:
 		print("✗ Erreur lors de la création de la table 'Objet'")
 	
+	print("--- Création de la table Sur ---")
+	# Création de la table Sur
+	var table_sur_query = """
+	CREATE TABLE IF NOT EXISTS Sur (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		objet_id INTEGER NOT NULL,
+		texte TEXT NOT NULL,
+		FOREIGN KEY (objet_id) REFERENCES Objet(id)
+	);
+	"""
+	
+	var sur_result = db.query(table_sur_query)
+	if sur_result != false:
+		print("✓ Table 'Sur' créée ou vérifiée")
+	else:
+		print("✗ Erreur lors de la création de la table 'Sur'")
+	
 	print("=== INITIALISATION TERMINÉE ===")
 	print("Toutes les tables ont été créées ou vérifiées avec succès")
 
-func save_transform(rigidbody: RigidBody3D, materiau_id: int = 1):
+func save_transform(rigidbody: RigidBody3D, materiau_id: int = 1, sur_id: int = -1):
 	var transform = rigidbody.transform
 	var position = transform.origin
 	var rotation = rigidbody.rotation
@@ -132,14 +151,26 @@ func save_transform(rigidbody: RigidBody3D, materiau_id: int = 1):
 	var transform_id = db.last_insert_rowid
 	
 	# Insertion dans la table Objet avec les clés étrangères
-	var insert_objet_query = """
-	INSERT INTO Objet (nom, transforme_id, materiau_id)
-	VALUES (?, ?, ?);
-	"""
+	var insert_objet_query
+	var objet_values
 	
-	db.query_with_bindings(insert_objet_query, [rigidbody.name, transform_id, materiau_id])
+	if sur_id > 0:
+		insert_objet_query = """
+		INSERT INTO Objet (nom, transforme_id, materiau_id, sur_id)
+		VALUES (?, ?, ?, ?);
+		"""
+		objet_values = [rigidbody.name, transform_id, materiau_id, sur_id]
+	else:
+		insert_objet_query = """
+		INSERT INTO Objet (nom, transforme_id, materiau_id)
+		VALUES (?, ?, ?);
+		"""
+		objet_values = [rigidbody.name, transform_id, materiau_id]
 	
-	print("Transform et Objet sauvegardés pour : ", rigidbody.name, " (transform_id: ", transform_id, ", materiau_id: ", materiau_id, ")")
+	db.query_with_bindings(insert_objet_query, objet_values)
+	
+	var sur_info = " (sur_id: " + str(sur_id) + ")" if sur_id > 0 else ""
+	print("Transform et Objet sauvegardés pour : ", rigidbody.name, " (transform_id: ", transform_id, ", materiau_id: ", materiau_id, ")", sur_info)
 
 func get_all_rigidbodies(node, list):
 	if node is RigidBody3D:
@@ -219,6 +250,28 @@ func load_materiaux():
 		print("  Poids: ", row["poids"])
 		print("  Opacité: ", row["opacite"])
 		print("  Couleur: ", row["couleur"])
+		print("---")
+	
+	return result
+
+func save_sur(objet_id: int, texte: String):
+	var insert_sur_query = """
+	INSERT INTO Sur (objet_id, texte)
+	VALUES (?, ?);
+	"""
+	
+	var values = [objet_id, texte]
+	
+	db.query_with_bindings(insert_sur_query, values)
+	print("Donnée Sur sauvegardée : objet_id=", objet_id, ", texte='", texte, "'")
+
+func load_surs():
+	var select_query = "SELECT * FROM Sur ORDER BY id DESC;"
+	var result = db.query(select_query)
+	
+	for row in result:
+		print("Sur ID: ", row["id"], " - Objet ID: ", row["objet_id"])
+		print("  Texte: ", row["texte"])
 		print("---")
 	
 	return result
@@ -349,24 +402,47 @@ func display_all_database_tables():
 	print("DEBUG: Résultat query Objet = ", objet_result)
 	
 	if objet_result is Array and objet_result.size() > 0:
-		print("+------+--------------------+--------------+--------------+")
-		print("| ID   | NOM                | TRANSFORM_ID | MATERIAU_ID  |")
-		print("+------+--------------------+--------------+--------------+")
+		print("+------+--------------------+--------------+--------------+----------+")
+		print("| ID   | NOM                | TRANSFORM_ID | MATERIAU_ID  | SUR_ID   |")
+		print("+------+--------------------+--------------+--------------+----------+")
 		for row in objet_result:
 			var id_str = pad_string(str(row["id"]), 4)
 			var nom_str = pad_string(str(row["nom"]), 18)
 			var transform_id_str = pad_string(str(row["transforme_id"]), 12)
 			var materiau_id_str = pad_string(str(row["materiau_id"]), 12)
-			print("| ", id_str, " | ", nom_str, " | ", transform_id_str, " | ", materiau_id_str, " |")
-		print("+------+--------------------+--------------+--------------+")
+			var sur_id_str = pad_string(str(row.get("sur_id", "NULL")) if row.has("sur_id") and row["sur_id"] != null else "NULL", 8)
+			print("| ", id_str, " | ", nom_str, " | ", transform_id_str, " | ", materiau_id_str, " | ", sur_id_str, " |")
+		print("+------+--------------------+--------------+--------------+----------+")
 	else:
 		print("|                      AUCUN OBJET TROUVÉ                      |")
+		print("+---------------------------------------------------------------+")
+	
+	# Affichage de la table Sur
+	print("\n+================================================================+")
+	print("|                        TABLE SUR                              |")
+	print("+================================================================+")
+	var sur_result = db.query("SELECT * FROM Sur ORDER BY id;")
+	print("DEBUG: Résultat query Sur = ", sur_result)
+	
+	if sur_result is Array and sur_result.size() > 0:
+		print("+------+------------+------------------------------------------+")
+		print("| ID   | OBJET_ID   | TEXTE                                    |")
+		print("+------+------------+------------------------------------------+")
+		for row in sur_result:
+			var id_str = pad_string(str(row["id"]), 4)
+			var objet_id_str = pad_string(str(row["objet_id"]), 10)
+			var texte_str = pad_string(str(row["texte"]), 40)
+			print("| ", id_str, " | ", objet_id_str, " | ", texte_str, " |")
+		print("+------+------------+------------------------------------------+")
+	else:
+		print("|                      AUCUNE DONNÉE SUR TROUVÉE               |")
 		print("+---------------------------------------------------------------+")
 	
 	# Affichage d'un résumé
 	var total_materiaux = materiaux_result.size() if materiaux_result is Array else 0
 	var total_transforme = transforme_result.size() if transforme_result is Array else 0  
 	var total_objets = objet_result.size() if objet_result is Array else 0
+	var total_surs = sur_result.size() if sur_result is Array else 0
 	
 	print("\n+===============================+")
 	print("|           RÉSUMÉ              |")
@@ -374,6 +450,7 @@ func display_all_database_tables():
 	print("| Matériaux  : ", pad_string(str(total_materiaux), 13), " |")
 	print("| Transforme : ", pad_string(str(total_transforme), 13), " |")
 	print("| Objets     : ", pad_string(str(total_objets), 13), " |")
+	print("| Sur        : ", pad_string(str(total_surs), 13), " |")
 	print("+===============================+")
 	print("================== FIN DE L'AFFICHAGE DE LA BASE DE DONNÉES ==================")
 
@@ -470,11 +547,12 @@ func export_database_to_csv():
 	print("Résultat select_rows Objet: ", objet_result)
 	print("Type de résultat Objet: ", typeof(objet_result))
 	
-	var objet_csv = "ID,NOM,TRANSFORME_ID,MATERIAU_ID\n"
+	var objet_csv = "ID,NOM,TRANSFORME_ID,MATERIAU_ID,SUR_ID\n"
 	
 	if objet_result is Array and objet_result.size() > 0:
 		for row in objet_result:
-			objet_csv += str(row["id"]) + "," + str(row["nom"]) + "," + str(row["transforme_id"]) + "," + str(row["materiau_id"]) + "\n"
+			var sur_id_value = str(row.get("sur_id", "")) if row.has("sur_id") and row["sur_id"] != null else ""
+			objet_csv += str(row["id"]) + "," + str(row["nom"]) + "," + str(row["transforme_id"]) + "," + str(row["materiau_id"]) + "," + sur_id_value + "\n"
 		print("✓ ", objet_result.size(), " objets trouvés")
 	else:
 		print("- Aucune donnée trouvée pour la table Objet, création d'un fichier vide")
@@ -490,6 +568,32 @@ func export_database_to_csv():
 	else:
 		print("✗ Erreur lors de l'export de la table Objet")
 	
+	# Export de la table Sur
+	print("Export de la table Sur...")
+	var sur_result = db.select_rows("Sur", "", ["*"])
+	print("Résultat select_rows Sur: ", sur_result)
+	print("Type de résultat Sur: ", typeof(sur_result))
+	
+	var sur_csv = "ID,OBJET_ID,TEXTE\n"
+	
+	if sur_result is Array and sur_result.size() > 0:
+		for row in sur_result:
+			sur_csv += str(row["id"]) + "," + str(row["objet_id"]) + "," + str(row["texte"]) + "\n"
+		print("✓ ", sur_result.size(), " données Sur trouvées")
+	else:
+		print("- Aucune donnée trouvée pour la table Sur, création d'un fichier vide")
+	
+	print("Contenu CSV Sur à écrire:")
+	print(sur_csv)
+	
+	var sur_file = FileAccess.open("res://csv/export_sur.csv", FileAccess.WRITE)
+	if sur_file:
+		sur_file.store_string(sur_csv)
+		sur_file.close()
+		print("✓ Table Sur exportée vers : res://csv/export_sur.csv")
+	else:
+		print("✗ Erreur lors de l'export de la table Sur")
+	
 	# Export d'une vue combinée (reconstruction manuelle des JOIN)
 	print("Export de la vue combinée...")
 	
@@ -497,12 +601,14 @@ func export_database_to_csv():
 	var objets_data = db.select_rows("Objet", "", ["*"])
 	var transform_data = db.select_rows("Transforme", "", ["*"])
 	var materiau_data = db.select_rows("Materiau", "", ["*"])
+	var sur_data = db.select_rows("Sur", "", ["*"])
 	
 	print("Objets trouvés: ", objets_data.size() if objets_data is Array else 0)
 	print("Transformations trouvées: ", transform_data.size() if transform_data is Array else 0)
 	print("Matériaux trouvés: ", materiau_data.size() if materiau_data is Array else 0)
+	print("Données Sur trouvées: ", sur_data.size() if sur_data is Array else 0)
 	
-	var combined_csv = "OBJET_ID,OBJET_NOM,POS_X,POS_Y,POS_Z,ROT_X,ROT_Y,ROT_Z,SCL_X,SCL_Y,SCL_Z,MATERIAU_NOM,POIDS,OPACITE,COULEUR\n"
+	var combined_csv = "OBJET_ID,OBJET_NOM,POS_X,POS_Y,POS_Z,ROT_X,ROT_Y,ROT_Z,SCL_X,SCL_Y,SCL_Z,MATERIAU_NOM,POIDS,OPACITE,COULEUR,SUR_ID,SUR_TEXTE\n"
 	
 	if objets_data is Array and objets_data.size() > 0 and transform_data is Array and materiau_data is Array:
 		for objet in objets_data:
@@ -520,12 +626,26 @@ func export_database_to_csv():
 					materiau = m
 					break
 			
+			# Trouver les données Sur correspondantes (si sur_id existe)
+			var sur = null
+			if objet.has("sur_id") and objet["sur_id"] != null and sur_data is Array:
+				for s in sur_data:
+					if s["id"] == objet["sur_id"]:
+						sur = s
+						break
+			
 			if transform != null and materiau != null:
 				combined_csv += str(objet["id"]) + "," + str(objet["nom"]) + ","
 				combined_csv += str(transform["position_x"]) + "," + str(transform["position_y"]) + "," + str(transform["position_z"]) + ","
 				combined_csv += str(transform["rotation_x"]) + "," + str(transform["rotation_y"]) + "," + str(transform["rotation_z"]) + ","
 				combined_csv += str(transform["scale_x"]) + "," + str(transform["scale_y"]) + "," + str(transform["scale_z"]) + ","
-				combined_csv += str(materiau["nom"]) + "," + str(materiau["poids"]) + "," + str(materiau["opacite"]) + "," + str(materiau["couleur"]) + "\n"
+				combined_csv += str(materiau["nom"]) + "," + str(materiau["poids"]) + "," + str(materiau["opacite"]) + "," + str(materiau["couleur"]) + ","
+				
+				# Ajouter les données Sur
+				if sur != null:
+					combined_csv += str(sur["id"]) + "," + str(sur["texte"]) + "\n"
+				else:
+					combined_csv += "," + "\n"  # Champs vides si pas de données Sur
 		
 		print("✓ Vue combinée construite avec succès")
 	else:
@@ -547,6 +667,7 @@ func export_database_to_csv():
 	print("- csv/export_materiau.csv")
 	print("- csv/export_transforme.csv") 
 	print("- csv/export_objet.csv")
+	print("- csv/export_sur.csv")
 	print("- csv/export_vue_complete.csv")
 
 func create_sample_data():
@@ -562,10 +683,17 @@ func create_sample_data():
 	var transform3_result = db.query("INSERT INTO Transforme (position_x, position_y, position_z, rotation_x, rotation_y, rotation_z, scale_x, scale_y, scale_z) VALUES (-2, 3, 1, 15, 0, 30, 0.5, 0.5, 0.5)")
 	print("Transform insertions: ", transform1_result, ", ", transform2_result, ", ", transform3_result)
 	
-	# Ajouter quelques objets d'exemple
+	# Ajouter quelques données Sur d'exemple d'abord
+	print("Ajout de données Sur d'exemple...")
+	save_sur(1, "Objet en bois très résistant")
+	save_sur(2, "Pierre sculptée avec des motifs anciens")
+	save_sur(3, "Cylindre métallique avec surface polie")
+	save_sur(1, "Texture rugueuse visible sur les côtés")
+	
+	# Ajouter quelques objets d'exemple (certains avec des liens vers Sur)
 	print("Ajout d'objets d'exemple...")
-	var objet1_result = db.query("INSERT INTO Objet (nom, transforme_id, materiau_id) VALUES ('CubeBois', 1, 1)")
-	var objet2_result = db.query("INSERT INTO Objet (nom, transforme_id, materiau_id) VALUES ('SpherePierre', 2, 2)")
+	var objet1_result = db.query("INSERT INTO Objet (nom, transforme_id, materiau_id, sur_id) VALUES ('CubeBois', 1, 1, 1)")
+	var objet2_result = db.query("INSERT INTO Objet (nom, transforme_id, materiau_id, sur_id) VALUES ('SpherePierre', 2, 2, 2)")
 	var objet3_result = db.query("INSERT INTO Objet (nom, transforme_id, materiau_id) VALUES ('CylindreMetal', 3, 3)")
 	print("Object insertions: ", objet1_result, ", ", objet2_result, ", ", objet3_result)
 	
@@ -573,6 +701,7 @@ func create_sample_data():
 
 func clear_all_data():
 	print("=== SUPPRESSION DE TOUTES LES DONNÉES ===")
+	db.query("DELETE FROM Sur")
 	db.query("DELETE FROM Objet")
 	db.query("DELETE FROM Transforme") 
 	db.query("DELETE FROM Materiau")
