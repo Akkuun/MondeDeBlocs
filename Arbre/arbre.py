@@ -169,6 +169,80 @@ def peut_recevoir_deplacement(obj_id, objects_data):
     
     return False
 
+def deplacer_au_dessus(obj_to_move_id, target_obj_id, objects_data):
+    """
+    Move one object on top of another object
+    
+    Args:
+        obj_to_move_id (int): ID of the object to move
+        target_obj_id (int): ID of the object to place it on
+        objects_data (list): List of object dictionaries (will be modified)
+    
+    Returns:
+        bool: True if movement was successful, False otherwise
+    """
+    # Check if the object can be moved
+    if not peut_etre_deplace(obj_to_move_id, objects_data):
+        print(f"Erreur: L'objet {obj_to_move_id} ne peut pas être déplacé")
+        return False
+    
+    # Check if the target can receive an object
+    if not peut_recevoir_deplacement(target_obj_id, objects_data):
+        print(f"Erreur: L'objet {target_obj_id} ne peut pas recevoir un objet")
+        return False
+    
+    # Find the object to move
+    obj_to_move = next((o for o in objects_data if o['ID'] == obj_to_move_id), None)
+    if not obj_to_move:
+        print(f"Erreur: Objet {obj_to_move_id} non trouvé")
+        return False
+    
+    # Find the target object
+    target_obj = next((o for o in objects_data if o['ID'] == target_obj_id), None)
+    if not target_obj:
+        print(f"Erreur: Objet cible {target_obj_id} non trouvé")
+        return False
+    
+    # Perform the movement
+    old_sur_id = obj_to_move['SUR_ID']
+    obj_to_move['SUR_ID'] = target_obj_id
+    
+    print(f"Succès: {obj_to_move['NOM']} déplacé de l'objet {old_sur_id} vers {target_obj['NOM']} ({target_obj_id})")
+    return True
+
+def coucher(obj_id, objects_data):
+    """
+    Lay down an object (set COUCHE to True)
+    
+    Args:
+        obj_id (int): ID of the object to lay down
+        objects_data (list): List of object dictionaries (will be modified)
+    
+    Returns:
+        bool: True if laying down was successful, False otherwise
+    """
+    # Check if the object can be laid down
+    if not peut_etre_couche(obj_id, objects_data):
+        print(f"Erreur: L'objet {obj_id} ne peut pas être couché")
+        return False
+    
+    # Find the object
+    obj = next((o for o in objects_data if o['ID'] == obj_id), None)
+    if not obj:
+        print(f"Erreur: Objet {obj_id} non trouvé")
+        return False
+    
+    # Check if already laying down
+    if obj['COUCHE']:
+        print(f"Info: {obj['NOM']} est déjà couché")
+        return True
+    
+    # Lay down the object
+    obj['COUCHE'] = True
+    
+    print(f"Succès: {obj['NOM']} a été couché")
+    return True
+
 # Load start and final object datasets
 start_objects_data = load_objects_data('start_objet.csv')
 final_objects_data = load_objects_data('final_objet.csv')
@@ -228,3 +302,57 @@ def test_movement_functions(objects_data, dataset_name):
 
 test_movement_functions(start_objects_data, "START DATASET")
 test_movement_functions(final_objects_data, "FINAL DATASET")
+
+print("\n=== TESTING MOVEMENT FUNCTIONS ===")
+
+# Create a copy of start data to test transformations
+import copy
+test_objects = copy.deepcopy(start_objects_data)
+
+print("\n--- Testing movements to recreate final state ---")
+
+# Step 1: Move Cube gris from Cube violet to Table
+print("\n1. Tentative de déplacer Cube gris (23) de Cube violet vers Table:")
+success = deplacer_au_dessus(23, 25, test_objects)
+if success:
+    print("   État après déplacement:")
+    cube_gris = next(o for o in test_objects if o['ID'] == 23)
+    print(f"   Cube gris est maintenant sur l'objet {cube_gris['SUR_ID']}")
+
+# Step 2: Lay down Donut Saucisse
+print("\n2. Tentative de coucher Donut Saucisse (24):")
+success = coucher(24, test_objects)
+if success:
+    donut = next(o for o in test_objects if o['ID'] == 24)
+    print(f"   Donut Saucisse couché: {donut['COUCHE']}")
+
+# Step 3: Move Cylindre Tungstène from Table to Donut Saucisse
+print("\n3. Tentative de déplacer Cylindre Tungstène (21) de Table vers Donut Saucisse:")
+success = deplacer_au_dessus(21, 24, test_objects)
+if success:
+    cylindre = next(o for o in test_objects if o['ID'] == 21)
+    print(f"   Cylindre Tungstène est maintenant sur l'objet {cylindre['SUR_ID']}")
+
+# Step 4: Move Cube violet to itself (this might seem odd but it's in the final data)
+print("\n4. Tentative de déplacer Cube violet (22) vers lui-même:")
+success = deplacer_au_dessus(22, 22, test_objects)
+if success:
+    cube_violet = next(o for o in test_objects if o['ID'] == 22)
+    print(f"   Cube violet est maintenant sur l'objet {cube_violet['SUR_ID']}")
+
+print("\n--- État final des objets après transformations ---")
+for obj in test_objects:
+    couche_status = "Couché" if obj['COUCHE'] else "Debout"
+    print(f"Object {obj['ID']}: {obj['NOM']} ({obj['FORME'].strip()}) - {couche_status} (On: {obj['SUR_ID']})")
+
+print("\n--- Comparaison avec l'état final attendu ---")
+print("État actuel vs État final attendu:")
+for test_obj in test_objects:
+    final_obj = next(o for o in final_objects_data if o['ID'] == test_obj['ID'])
+    
+    sur_match = "✓" if test_obj['SUR_ID'] == final_obj['SUR_ID'] else "✗"
+    couche_match = "✓" if test_obj['COUCHE'] == final_obj['COUCHE'] else "✗"
+    
+    print(f"Object {test_obj['ID']} ({test_obj['NOM']}):")
+    print(f"  SUR_ID: {test_obj['SUR_ID']} vs {final_obj['SUR_ID']} {sur_match}")
+    print(f"  COUCHE: {test_obj['COUCHE']} vs {final_obj['COUCHE']} {couche_match}")
