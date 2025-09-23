@@ -1,6 +1,6 @@
-ID,NOM,MATERIAU_ID,SUR_ID
-21,Cylindre Tungstène,3,25
-22,Cube violet,1,25
-23,Cube gris,2,22
-24,Donut Saucisse,4,24
-25,Table,24,0
+ID,NOM,MATERIAU_ID,SUR_ID,COUCHE,FORME
+21,Cylindre Tungstène,3,25,False, CYLINDRE
+22,Cube violet,1,25,False, CUBE
+23,Cube gris,2,22,False, CUBE
+24,Donut Saucisse,4,24,False, DONUT_SAUCISSE
+25,Table,24,0,False, TABLE

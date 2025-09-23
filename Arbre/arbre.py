@@ -45,7 +45,9 @@ def load_objects_data():
     converters = {
         'ID': int,
         'MATERIAU_ID': int,
-        'SUR_ID': int
+        'SUR_ID': int,
+        'COUCHE': lambda x: x.strip().lower() == 'true',  # Convert to boolean
+        'FORME': str
     }
     return load_csv_data('export_objet.csv', converters)
 
@@ -64,9 +66,9 @@ materials_data = load_materials_data()
 
 print("\n=== OBJECTS DATA ===")
 for obj in objects_data:
-    print(f"Object {obj['ID']}: {obj['NOM']} (Material: {obj['MATERIAU_ID']}, On: {obj['SUR_ID']})")
+    couche_status = "Couché" if obj['COUCHE'] else "Debout"
+    print(f"Object {obj['ID']}: {obj['NOM']} ({obj['FORME'].strip()}) - {couche_status} (Material: {obj['MATERIAU_ID']}, On: {obj['SUR_ID']})")
 
 print("\n=== MATERIALS DATA ===")
 for mat in materials_data:
     print(f"Material {mat['ID']}: {mat['NOM']} - {mat['COULEUR']} {mat['MATERIAU']} (Weight: {mat['POIDS']}, Opacity: {mat['OPACITE']})")
-
