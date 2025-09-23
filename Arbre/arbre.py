@@ -40,7 +40,7 @@ def load_csv_data(filename, data_converters=None):
         print(f"Error loading CSV {filename}: {e}")
         return []
 
-def load_objects_data():
+def load_objects_data(filename):
     """Load objects data with appropriate type conversions"""
     converters = {
         'ID': int,
@@ -49,7 +49,7 @@ def load_objects_data():
         'COUCHE': lambda x: x.strip().lower() == 'true',  # Convert to boolean
         'FORME': str
     }
-    return load_csv_data('export_objet.csv', converters)
+    return load_csv_data(filename, converters)
 
 def load_materials_data():
     """Load materials data with appropriate type conversions"""
@@ -58,17 +58,36 @@ def load_materials_data():
         'POIDS': float,
         'OPACITE': float
     }
-    return load_csv_data('export_materiau.csv', converters)
+    return load_csv_data('materiau.csv', converters)
 
-# Load both datasets
-objects_data = load_objects_data()
+# Load start and final object datasets
+start_objects_data = load_objects_data('start_objet.csv')
+final_objects_data = load_objects_data('final_objet.csv')
 materials_data = load_materials_data()
 
-print("\n=== OBJECTS DATA ===")
-for obj in objects_data:
+print("\n=== START OBJECTS DATA ===")
+for obj in start_objects_data:
+    couche_status = "Couché" if obj['COUCHE'] else "Debout"
+    print(f"Object {obj['ID']}: {obj['NOM']} ({obj['FORME'].strip()}) - {couche_status} (Material: {obj['MATERIAU_ID']}, On: {obj['SUR_ID']})")
+
+print("\n=== FINAL OBJECTS DATA ===")
+for obj in final_objects_data:
     couche_status = "Couché" if obj['COUCHE'] else "Debout"
     print(f"Object {obj['ID']}: {obj['NOM']} ({obj['FORME'].strip()}) - {couche_status} (Material: {obj['MATERIAU_ID']}, On: {obj['SUR_ID']})")
 
 print("\n=== MATERIALS DATA ===")
 for mat in materials_data:
     print(f"Material {mat['ID']}: {mat['NOM']} - {mat['COULEUR']} {mat['MATERIAU']} (Weight: {mat['POIDS']}, Opacity: {mat['OPACITE']})")
+
+print("\n=== CHANGES BETWEEN START AND FINAL ===")
+for start_obj, final_obj in zip(start_objects_data, final_objects_data):
+    if start_obj['ID'] == final_obj['ID']:
+        changes = []
+        if start_obj['SUR_ID'] != final_obj['SUR_ID']:
+            changes.append(f"SUR_ID: {start_obj['SUR_ID']} → {final_obj['SUR_ID']}")
+        if start_obj['COUCHE'] != final_obj['COUCHE']:
+            changes.append(f"COUCHE: {start_obj['COUCHE']} → {final_obj['COUCHE']}")
+        if changes:
+            print(f"Object {start_obj['ID']} ({start_obj['NOM']}): {', '.join(changes)}")
+        else:
+            print(f"Object {start_obj['ID']} ({start_obj['NOM']}): No changes")
