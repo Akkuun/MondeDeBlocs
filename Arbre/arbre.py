@@ -183,31 +183,31 @@ def deplacer_au_dessus(obj_to_move_id, target_obj_id, objects_data):
     """
     # Check if the object can be moved
     if not peut_etre_deplace(obj_to_move_id, objects_data):
-        print(f"Erreur: L'objet {obj_to_move_id} ne peut pas être déplacé")
+        #print(f"Erreur: L'objet {obj_to_move_id} ne peut pas être déplacé")
         return False
     
     # Check if the target can receive an object
     if not peut_recevoir_deplacement(target_obj_id, objects_data):
-        print(f"Erreur: L'objet {target_obj_id} ne peut pas recevoir un objet")
+        #print(f"Erreur: L'objet {target_obj_id} ne peut pas recevoir un objet")
         return False
     
     # Find the object to move
     obj_to_move = next((o for o in objects_data if o['ID'] == obj_to_move_id), None)
     if not obj_to_move:
-        print(f"Erreur: Objet {obj_to_move_id} non trouvé")
+        #print(f"Erreur: Objet {obj_to_move_id} non trouvé")
         return False
     
     # Find the target object
     target_obj = next((o for o in objects_data if o['ID'] == target_obj_id), None)
     if not target_obj:
-        print(f"Erreur: Objet cible {target_obj_id} non trouvé")
+        #print(f"Erreur: Objet cible {target_obj_id} non trouvé")
         return False
     
     # Perform the movement
     old_sur_id = obj_to_move['SUR_ID']
     obj_to_move['SUR_ID'] = target_obj_id
     
-    print(f"Succès: {obj_to_move['NOM']} déplacé de l'objet {old_sur_id} vers {target_obj['NOM']} ({target_obj_id})")
+    #print(f"Succès: {obj_to_move['NOM']} déplacé de l'objet {old_sur_id} vers {target_obj['NOM']} ({target_obj_id})")
     return True
 
 def coucher(obj_id, objects_data):
@@ -223,25 +223,218 @@ def coucher(obj_id, objects_data):
     """
     # Check if the object can be laid down
     if not peut_etre_couche(obj_id, objects_data):
-        print(f"Erreur: L'objet {obj_id} ne peut pas être couché")
+        #print(f"Erreur: L'objet {obj_id} ne peut pas être couché")
         return False
     
     # Find the object
     obj = next((o for o in objects_data if o['ID'] == obj_id), None)
     if not obj:
-        print(f"Erreur: Objet {obj_id} non trouvé")
+        #print(f"Erreur: Objet {obj_id} non trouvé")
         return False
     
     # Check if already laying down
     if obj['COUCHE']:
-        print(f"Info: {obj['NOM']} est déjà couché")
+        #print(f"Info: {obj['NOM']} est déjà couché")
         return True
     
     # Lay down the object
     obj['COUCHE'] = True
     
-    print(f"Succès: {obj['NOM']} a été couché")
+    #print(f"Succès: {obj['NOM']} a été couché")
     return True
+
+def get_all_possible_actions(objects_data):
+    """
+    Get all possible actions from the current state
+    
+    Args:
+        objects_data (list): Current state of objects
+    
+    Returns:
+        list: List of tuples representing possible actions
+              Format: ('move', obj_id, target_id) or ('lay_down', obj_id)
+    """
+    actions = []
+    
+    # Check all possible movements
+    for obj in objects_data:
+        obj_id = obj['ID']
+        
+        # Check if object can be moved
+        if peut_etre_deplace(obj_id, objects_data):
+            # Try moving to each possible target
+            for target_obj in objects_data:
+                target_id = target_obj['ID']
+                if target_id != obj_id and peut_recevoir_deplacement(target_id, objects_data):
+                    actions.append(('move', obj_id, target_id))
+        
+        # Check if object can be laid down
+        if peut_etre_couche(obj_id, objects_data):
+            actions.append(('lay_down', obj_id))
+    
+    return actions
+
+def apply_action(objects_data, action, silent=False):
+    """
+    Apply an action to a copy of the objects data
+    
+    Args:
+        objects_data (list): Current state of objects
+        action (tuple): Action to apply
+        silent (bool): If True, suppress print output
+    
+    Returns:
+        tuple: (new_objects_data, success, description)
+    """
+    import copy
+    new_state = copy.deepcopy(objects_data)
+    
+    if action[0] == 'move':
+        _, obj_id, target_id = action
+        
+        if silent:
+            # Manually check conditions without printing
+            if not peut_etre_deplace(obj_id, new_state) or not peut_recevoir_deplacement(target_id, new_state):
+                success = False
+            else:
+                obj_to_move = next((o for o in new_state if o['ID'] == obj_id), None)
+                if obj_to_move:
+                    obj_to_move['SUR_ID'] = target_id
+                    success = True
+                else:
+                    success = False
+        else:
+            success = deplacer_au_dessus(obj_id, target_id, new_state)
+        
+        obj_name = next(o for o in new_state if o['ID'] == obj_id)['NOM']
+        target_name = next(o for o in new_state if o['ID'] == target_id)['NOM']
+        description = f"Déplacer {obj_name} sur {target_name}"
+        
+    elif action[0] == 'lay_down':
+        _, obj_id = action
+        
+        if silent:
+            # Manually check conditions without printing
+            if not peut_etre_couche(obj_id, new_state):
+                success = False
+            else:
+                obj = next((o for o in new_state if o['ID'] == obj_id), None)
+                if obj and not obj['COUCHE']:
+                    obj['COUCHE'] = True
+                    success = True
+                else:
+                    success = True  # Already laying down is considered success
+        else:
+            success = coucher(obj_id, new_state)
+        
+        obj_name = next(o for o in new_state if o['ID'] == obj_id)['NOM']
+        description = f"Coucher {obj_name}"
+    
+    else:
+        return new_state, False, "Action inconnue"
+    
+    return new_state, success, description
+
+def states_equal(state1, state2):
+    """
+    Check if two states are equal
+    
+    Args:
+        state1, state2 (list): States to compare
+    
+    Returns:
+        bool: True if states are identical
+    """
+    if len(state1) != len(state2):
+        return False
+    
+    for obj1 in state1:
+        obj2 = next((o for o in state2 if o['ID'] == obj1['ID']), None)
+        if not obj2:
+            return False
+        if obj1['SUR_ID'] != obj2['SUR_ID'] or obj1['COUCHE'] != obj2['COUCHE']:
+            return False
+    
+    return True
+
+def state_to_string(objects_data):
+    """
+    Convert a state to a string representation for hashing/comparison
+    
+    Args:
+        objects_data (list): State to convert
+    
+    Returns:
+        str: String representation of the state
+    """
+    sorted_objects = sorted(objects_data, key=lambda x: x['ID'])
+    state_parts = []
+    for obj in sorted_objects:
+        state_parts.append(f"{obj['ID']}:{obj['SUR_ID']}:{obj['COUCHE']}")
+    return "|".join(state_parts)
+
+def write_path(path):
+    """
+    Writes the path given in a randomly named file
+    """
+    import random
+    solution_folder = "solutions"
+    if not os.path.exists(solution_folder):
+        os.makedirs(solution_folder)
+    number_of_moves = path.count('\n')
+    filename = f"solution_{number_of_moves}_moves_{random.randint(0,99999)}.txt"
+    with open(os.path.join(solution_folder, filename), 'w', encoding='utf-8') as f:
+        f.write(path)
+
+def breadth_first_search(start_state, goal_state, path = "", max_depth=5, current_depth=0):
+    if current_depth >= max_depth:
+        return
+
+    if states_equal(start_state, goal_state):
+        write_path(path)
+        
+        print("Solution found!")
+
+    for action in get_all_possible_actions(start_state):
+        new_state, success, description = apply_action(start_state, action)
+        
+        if success:
+            detail = ""
+            if action[0] == 'move':
+                obj1_name = next(o for o in start_state if o['ID'] == action[1])['NOM']
+                obj2_name = next(o for o in start_state if o['ID'] == action[2])['NOM']
+                detail = f"#({action[1]} : {obj1_name}) -> #({action[2]} : {obj2_name})"
+            elif action[0] == 'lay_down':
+                obj1_name = next(o for o in start_state if o['ID'] == action[1])['NOM']
+                detail = f"#({action[1]} : {obj1_name})"
+            breadth_first_search(new_state, goal_state, path + f"{action} {detail}\n", max_depth, current_depth + 1)
+
+def save_paths_to_file(paths, filename="solution_paths.txt"):
+    """
+    Save all successful paths to a file
+    
+    Args:
+        paths (list): List of successful paths
+        filename (str): Output filename
+    """
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write(f"Solutions trouvées: {len(paths)}\n")
+        f.write("=" * 50 + "\n\n")
+        
+        for i, path in enumerate(paths, 1):
+            f.write(f"SOLUTION {i} ({len(path)} étapes):\n")
+            f.write("-" * 30 + "\n")
+            
+            for step, (action, description) in enumerate(path, 1):
+                f.write(f"Étape {step}: {description}\n")
+                if action[0] == 'move':
+                    f.write(f"  Action: déplacer objet {action[1]} sur objet {action[2]}\n")
+                elif action[0] == 'lay_down':
+                    f.write(f"  Action: coucher objet {action[1]}\n")
+            
+            f.write("\n")
+    
+    print(f"Chemins sauvegardés dans {filename}")
 
 # Load start and final object datasets
 start_objects_data = load_objects_data('start_objet.csv')
@@ -356,3 +549,10 @@ for test_obj in test_objects:
     print(f"Object {test_obj['ID']} ({test_obj['NOM']}):")
     print(f"  SUR_ID: {test_obj['SUR_ID']} vs {final_obj['SUR_ID']} {sur_match}")
     print(f"  COUCHE: {test_obj['COUCHE']} vs {final_obj['COUCHE']} {couche_match}")
+
+print("\n" + "="*60)
+print("=== BREADTH-FIRST SEARCH FOR SOLUTION PATHS ===")
+print("="*60)
+
+
+breadth_first_search(start_objects_data, final_objects_data, max_depth=6)
