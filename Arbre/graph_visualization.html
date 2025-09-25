@@ -1,0 +1,3467 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Graph Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .control-group {
+            display: inline-block;
+            margin-right: 20px;
+        }
+        
+        label {
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        select, button {
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .graph-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .node {
+            cursor: pointer;
+            stroke: #333;
+            stroke-width: 1px;
+        }
+        
+        .node.goal {
+            stroke: #ff6b6b;
+            stroke-width: 3px;
+        }
+        
+        .node.selected {
+            stroke: #4ecdc4;
+            stroke-width: 3px;
+        }
+        
+        .link {
+            fill: none;
+            stroke: #999;
+            stroke-width: 1px;
+        }
+        
+        .link.highlighted {
+            stroke: #ff6b6b;
+            stroke-width: 2px;
+        }
+        
+        .node-text {
+            font-size: 10px;
+            text-anchor: middle;
+            pointer-events: none;
+            fill: #333;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .info-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Search Graph Visualization</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="depthFilter">Max Depth:</label>
+                <select id="depthFilter">
+                    <option value="-1">All Depths</option>
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="actionFilter">Action Type:</label>
+                <select id="actionFilter">
+                    <option value="all">All Actions</option>
+                    <option value="initial">Initial</option>
+                    <option value="move">Move</option>
+                    <option value="lay_down">Lay Down</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <button onclick="resetZoom()">Reset Zoom</button>
+                <button onclick="centerOnGoal()">Center on Goal</button>
+                <button onclick="showSolutionPath()">Show Solution Path</button>
+            </div>
+        </div>
+        
+        <div class="graph-container">
+            <svg id="graph"></svg>
+        </div>
+        
+        <div class="info-panel">
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalNodes">200</div>
+                    <div class="stat-label">Total Nodes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="goalNodes">1</div>
+                    <div class="stat-label">Goal Nodes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="maxDepth">6</div>
+                    <div class="stat-label">Max Depth</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="visibleNodes">200</div>
+                    <div class="stat-label">Visible Nodes</div>
+                </div>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-circle" style="background-color: #e3f2fd;"></div>
+                    <span>Initial State</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-circle" style="background-color: #fff3e0;"></div>
+                    <span>Move Action</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-circle" style="background-color: #f3e5f5;"></div>
+                    <span>Lay Down Action</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-circle" style="background-color: #ffebee; border: 3px solid #ff6b6b;"></div>
+                    <span>Goal State</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tooltip" id="tooltip" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Data
+        const graphData = {
+            nodes: [
+            {
+                        "id": 0,
+                        "depth": 0,
+                        "is_goal": false,
+                        "description": "Initial state",
+                        "action_type": "initial",
+                        "children_count": 7,
+                        "parent": null,
+                        "x": 600,
+                        "y": 50
+            },
+            {
+                        "id": 1,
+                        "depth": 1,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 3,
+                        "parent": 0,
+                        "x": 100.0,
+                        "y": 170
+            },
+            {
+                        "id": 2,
+                        "depth": 1,
+                        "is_goal": false,
+                        "description": "Coucher Cylindre Tungst\u00e8ne",
+                        "action_type": "lay_down",
+                        "children_count": 3,
+                        "parent": 0,
+                        "x": 266.66666666666663,
+                        "y": 170
+            },
+            {
+                        "id": 3,
+                        "depth": 1,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 6,
+                        "parent": 0,
+                        "x": 433.3333333333333,
+                        "y": 170
+            },
+            {
+                        "id": 4,
+                        "depth": 1,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Table",
+                        "action_type": "move",
+                        "children_count": 8,
+                        "parent": 0,
+                        "x": 600.0,
+                        "y": 170
+            },
+            {
+                        "id": 5,
+                        "depth": 1,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 0,
+                        "x": 766.6666666666666,
+                        "y": 170
+            },
+            {
+                        "id": 6,
+                        "depth": 1,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 0,
+                        "x": 933.3333333333333,
+                        "y": 170
+            },
+            {
+                        "id": 7,
+                        "depth": 1,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 2,
+                        "parent": 0,
+                        "x": 1100.0,
+                        "y": 170
+            },
+            {
+                        "id": 8,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "Coucher Cylindre Tungst\u00e8ne",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 1,
+                        "x": 100.0,
+                        "y": 290
+            },
+            {
+                        "id": 9,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 1,
+                        "x": 143.47826086956522,
+                        "y": 290
+            },
+            {
+                        "id": 10,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 1,
+                        "x": 186.95652173913044,
+                        "y": 290
+            },
+            {
+                        "id": 11,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Table",
+                        "action_type": "move",
+                        "children_count": 6,
+                        "parent": 2,
+                        "x": 230.43478260869566,
+                        "y": 290
+            },
+            {
+                        "id": 12,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 2,
+                        "x": 273.9130434782609,
+                        "y": 290
+            },
+            {
+                        "id": 13,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 2,
+                        "parent": 2,
+                        "x": 317.3913043478261,
+                        "y": 290
+            },
+            {
+                        "id": 14,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 5,
+                        "parent": 3,
+                        "x": 360.8695652173913,
+                        "y": 290
+            },
+            {
+                        "id": 15,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 3,
+                        "parent": 3,
+                        "x": 404.3478260869565,
+                        "y": 290
+            },
+            {
+                        "id": 16,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 3,
+                        "x": 447.82608695652175,
+                        "y": 290
+            },
+            {
+                        "id": 17,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 3,
+                        "x": 491.304347826087,
+                        "y": 290
+            },
+            {
+                        "id": 18,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 3,
+                        "x": 534.7826086956522,
+                        "y": 290
+            },
+            {
+                        "id": 19,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 3,
+                        "x": 578.2608695652174,
+                        "y": 290
+            },
+            {
+                        "id": 20,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 4,
+                        "parent": 4,
+                        "x": 621.7391304347826,
+                        "y": 290
+            },
+            {
+                        "id": 21,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 4,
+                        "parent": 4,
+                        "x": 665.2173913043479,
+                        "y": 290
+            },
+            {
+                        "id": 22,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 4,
+                        "parent": 4,
+                        "x": 708.695652173913,
+                        "y": 290
+            },
+            {
+                        "id": 23,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 4,
+                        "parent": 4,
+                        "x": 752.1739130434783,
+                        "y": 290
+            },
+            {
+                        "id": 24,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 4,
+                        "x": 795.6521739130435,
+                        "y": 290
+            },
+            {
+                        "id": 25,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 4,
+                        "x": 839.1304347826087,
+                        "y": 290
+            },
+            {
+                        "id": 26,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 4,
+                        "x": 882.608695652174,
+                        "y": 290
+            },
+            {
+                        "id": 27,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 2,
+                        "parent": 4,
+                        "x": 926.0869565217391,
+                        "y": 290
+            },
+            {
+                        "id": 28,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 5,
+                        "x": 969.5652173913044,
+                        "y": 290
+            },
+            {
+                        "id": 29,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 6,
+                        "x": 1013.0434782608696,
+                        "y": 290
+            },
+            {
+                        "id": 30,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 7,
+                        "x": 1056.5217391304348,
+                        "y": 290
+            },
+            {
+                        "id": 31,
+                        "depth": 2,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 5,
+                        "parent": 7,
+                        "x": 1100.0,
+                        "y": 290
+            },
+            {
+                        "id": 32,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 8,
+                        "x": 100.0,
+                        "y": 410
+            },
+            {
+                        "id": 33,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 9,
+                        "x": 119.23076923076923,
+                        "y": 410
+            },
+            {
+                        "id": 34,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 11,
+                        "x": 138.46153846153845,
+                        "y": 410
+            },
+            {
+                        "id": 35,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 11,
+                        "x": 157.69230769230768,
+                        "y": 410
+            },
+            {
+                        "id": 36,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 3,
+                        "parent": 11,
+                        "x": 176.9230769230769,
+                        "y": 410
+            },
+            {
+                        "id": 37,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 11,
+                        "x": 196.15384615384613,
+                        "y": 410
+            },
+            {
+                        "id": 38,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 11,
+                        "x": 215.3846153846154,
+                        "y": 410
+            },
+            {
+                        "id": 39,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 2,
+                        "parent": 11,
+                        "x": 234.6153846153846,
+                        "y": 410
+            },
+            {
+                        "id": 40,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 12,
+                        "x": 253.84615384615384,
+                        "y": 410
+            },
+            {
+                        "id": 41,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 13,
+                        "x": 273.0769230769231,
+                        "y": 410
+            },
+            {
+                        "id": 42,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 4,
+                        "parent": 13,
+                        "x": 292.30769230769226,
+                        "y": 410
+            },
+            {
+                        "id": 43,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 3,
+                        "parent": 14,
+                        "x": 311.53846153846155,
+                        "y": 410
+            },
+            {
+                        "id": 44,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 14,
+                        "x": 330.7692307692308,
+                        "y": 410
+            },
+            {
+                        "id": 45,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 14,
+                        "x": 350.0,
+                        "y": 410
+            },
+            {
+                        "id": 46,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 14,
+                        "x": 369.2307692307692,
+                        "y": 410
+            },
+            {
+                        "id": 47,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 14,
+                        "x": 388.46153846153845,
+                        "y": 410
+            },
+            {
+                        "id": 48,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 15,
+                        "x": 407.6923076923077,
+                        "y": 410
+            },
+            {
+                        "id": 49,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 15,
+                        "x": 426.9230769230769,
+                        "y": 410
+            },
+            {
+                        "id": 50,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 15,
+                        "x": 446.15384615384613,
+                        "y": 410
+            },
+            {
+                        "id": 51,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 16,
+                        "x": 465.38461538461536,
+                        "y": 410
+            },
+            {
+                        "id": 52,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 17,
+                        "x": 484.6153846153846,
+                        "y": 410
+            },
+            {
+                        "id": 53,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 18,
+                        "x": 503.8461538461538,
+                        "y": 410
+            },
+            {
+                        "id": 54,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 19,
+                        "x": 523.0769230769231,
+                        "y": 410
+            },
+            {
+                        "id": 55,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 3,
+                        "parent": 20,
+                        "x": 542.3076923076923,
+                        "y": 410
+            },
+            {
+                        "id": 56,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 20,
+                        "x": 561.5384615384615,
+                        "y": 410
+            },
+            {
+                        "id": 57,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 20,
+                        "x": 580.7692307692307,
+                        "y": 410
+            },
+            {
+                        "id": 58,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 20,
+                        "x": 600.0,
+                        "y": 410
+            },
+            {
+                        "id": 59,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 3,
+                        "parent": 21,
+                        "x": 619.2307692307692,
+                        "y": 410
+            },
+            {
+                        "id": 60,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 21,
+                        "x": 638.4615384615385,
+                        "y": 410
+            },
+            {
+                        "id": 61,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 21,
+                        "x": 657.6923076923076,
+                        "y": 410
+            },
+            {
+                        "id": 62,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 21,
+                        "x": 676.9230769230769,
+                        "y": 410
+            },
+            {
+                        "id": 63,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 22,
+                        "x": 696.1538461538461,
+                        "y": 410
+            },
+            {
+                        "id": 64,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 22,
+                        "x": 715.3846153846154,
+                        "y": 410
+            },
+            {
+                        "id": 65,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 22,
+                        "x": 734.6153846153846,
+                        "y": 410
+            },
+            {
+                        "id": 66,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 22,
+                        "x": 753.8461538461538,
+                        "y": 410
+            },
+            {
+                        "id": 67,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 23,
+                        "x": 773.0769230769231,
+                        "y": 410
+            },
+            {
+                        "id": 68,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 23,
+                        "x": 792.3076923076923,
+                        "y": 410
+            },
+            {
+                        "id": 69,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 23,
+                        "x": 811.5384615384615,
+                        "y": 410
+            },
+            {
+                        "id": 70,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 23,
+                        "x": 830.7692307692307,
+                        "y": 410
+            },
+            {
+                        "id": 71,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 24,
+                        "x": 850.0,
+                        "y": 410
+            },
+            {
+                        "id": 72,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 25,
+                        "x": 869.2307692307692,
+                        "y": 410
+            },
+            {
+                        "id": 73,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 2,
+                        "parent": 26,
+                        "x": 888.4615384615385,
+                        "y": 410
+            },
+            {
+                        "id": 74,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 27,
+                        "x": 907.6923076923076,
+                        "y": 410
+            },
+            {
+                        "id": 75,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 27,
+                        "x": 926.9230769230769,
+                        "y": 410
+            },
+            {
+                        "id": 76,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 3,
+                        "parent": 28,
+                        "x": 946.1538461538461,
+                        "y": 410
+            },
+            {
+                        "id": 77,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 29,
+                        "x": 965.3846153846154,
+                        "y": 410
+            },
+            {
+                        "id": 78,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 3,
+                        "parent": 30,
+                        "x": 984.6153846153845,
+                        "y": 410
+            },
+            {
+                        "id": 79,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 3,
+                        "parent": 30,
+                        "x": 1003.8461538461538,
+                        "y": 410
+            },
+            {
+                        "id": 80,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 31,
+                        "x": 1023.0769230769231,
+                        "y": 410
+            },
+            {
+                        "id": 81,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 31,
+                        "x": 1042.3076923076924,
+                        "y": 410
+            },
+            {
+                        "id": 82,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 31,
+                        "x": 1061.5384615384614,
+                        "y": 410
+            },
+            {
+                        "id": 83,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 31,
+                        "x": 1080.7692307692307,
+                        "y": 410
+            },
+            {
+                        "id": 84,
+                        "depth": 3,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 31,
+                        "x": 1100.0,
+                        "y": 410
+            },
+            {
+                        "id": 85,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 34,
+                        "x": 100.0,
+                        "y": 530
+            },
+            {
+                        "id": 86,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 34,
+                        "x": 114.92537313432835,
+                        "y": 530
+            },
+            {
+                        "id": 87,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 35,
+                        "x": 129.8507462686567,
+                        "y": 530
+            },
+            {
+                        "id": 88,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 35,
+                        "x": 144.77611940298507,
+                        "y": 530
+            },
+            {
+                        "id": 89,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 36,
+                        "x": 159.70149253731344,
+                        "y": 530
+            },
+            {
+                        "id": 90,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 36,
+                        "x": 174.62686567164178,
+                        "y": 530
+            },
+            {
+                        "id": 91,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 36,
+                        "x": 189.55223880597015,
+                        "y": 530
+            },
+            {
+                        "id": 92,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 2,
+                        "parent": 37,
+                        "x": 204.47761194029852,
+                        "y": 530
+            },
+            {
+                        "id": 93,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 2,
+                        "parent": 38,
+                        "x": 219.40298507462688,
+                        "y": 530
+            },
+            {
+                        "id": 94,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 39,
+                        "x": 234.32835820895522,
+                        "y": 530
+            },
+            {
+                        "id": 95,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 39,
+                        "x": 249.2537313432836,
+                        "y": 530
+            },
+            {
+                        "id": 96,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 40,
+                        "x": 264.179104477612,
+                        "y": 530
+            },
+            {
+                        "id": 97,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 41,
+                        "x": 279.1044776119403,
+                        "y": 530
+            },
+            {
+                        "id": 98,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 42,
+                        "x": 294.02985074626866,
+                        "y": 530
+            },
+            {
+                        "id": 99,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 42,
+                        "x": 308.95522388059703,
+                        "y": 530
+            },
+            {
+                        "id": 100,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 42,
+                        "x": 323.88059701492534,
+                        "y": 530
+            },
+            {
+                        "id": 101,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 42,
+                        "x": 338.80597014925377,
+                        "y": 530
+            },
+            {
+                        "id": 102,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 43,
+                        "x": 353.7313432835821,
+                        "y": 530
+            },
+            {
+                        "id": 103,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 43,
+                        "x": 368.65671641791045,
+                        "y": 530
+            },
+            {
+                        "id": 104,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 43,
+                        "x": 383.5820895522388,
+                        "y": 530
+            },
+            {
+                        "id": 105,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 44,
+                        "x": 398.5074626865672,
+                        "y": 530
+            },
+            {
+                        "id": 106,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 45,
+                        "x": 413.43283582089555,
+                        "y": 530
+            },
+            {
+                        "id": 107,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 46,
+                        "x": 428.3582089552239,
+                        "y": 530
+            },
+            {
+                        "id": 108,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 48,
+                        "x": 443.2835820895522,
+                        "y": 530
+            },
+            {
+                        "id": 109,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 49,
+                        "x": 458.2089552238806,
+                        "y": 530
+            },
+            {
+                        "id": 110,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 51,
+                        "x": 473.13432835820896,
+                        "y": 530
+            },
+            {
+                        "id": 111,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 52,
+                        "x": 488.05970149253733,
+                        "y": 530
+            },
+            {
+                        "id": 112,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 53,
+                        "x": 502.9850746268657,
+                        "y": 530
+            },
+            {
+                        "id": 113,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 54,
+                        "x": 517.9104477611941,
+                        "y": 530
+            },
+            {
+                        "id": 114,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 55,
+                        "x": 532.8358208955224,
+                        "y": 530
+            },
+            {
+                        "id": 115,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 55,
+                        "x": 547.7611940298507,
+                        "y": 530
+            },
+            {
+                        "id": 116,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 55,
+                        "x": 562.6865671641791,
+                        "y": 530
+            },
+            {
+                        "id": 117,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 56,
+                        "x": 577.6119402985075,
+                        "y": 530
+            },
+            {
+                        "id": 118,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 57,
+                        "x": 592.5373134328358,
+                        "y": 530
+            },
+            {
+                        "id": 119,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 59,
+                        "x": 607.4626865671642,
+                        "y": 530
+            },
+            {
+                        "id": 120,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 59,
+                        "x": 622.3880597014926,
+                        "y": 530
+            },
+            {
+                        "id": 121,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 59,
+                        "x": 637.3134328358209,
+                        "y": 530
+            },
+            {
+                        "id": 122,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 60,
+                        "x": 652.2388059701493,
+                        "y": 530
+            },
+            {
+                        "id": 123,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 61,
+                        "x": 667.1641791044776,
+                        "y": 530
+            },
+            {
+                        "id": 124,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 62,
+                        "x": 682.0895522388059,
+                        "y": 530
+            },
+            {
+                        "id": 125,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 63,
+                        "x": 697.0149253731344,
+                        "y": 530
+            },
+            {
+                        "id": 126,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 64,
+                        "x": 711.9402985074627,
+                        "y": 530
+            },
+            {
+                        "id": 127,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 65,
+                        "x": 726.8656716417911,
+                        "y": 530
+            },
+            {
+                        "id": 128,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Donut Saucisse sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 67,
+                        "x": 741.7910447761194,
+                        "y": 530
+            },
+            {
+                        "id": 129,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 67,
+                        "x": 756.7164179104478,
+                        "y": 530
+            },
+            {
+                        "id": 130,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 68,
+                        "x": 771.6417910447761,
+                        "y": 530
+            },
+            {
+                        "id": 131,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 69,
+                        "x": 786.5671641791045,
+                        "y": 530
+            },
+            {
+                        "id": 132,
+                        "depth": 4,
+                        "is_goal": true,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 70,
+                        "x": 801.4925373134329,
+                        "y": 530
+            },
+            {
+                        "id": 133,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 71,
+                        "x": 816.4179104477612,
+                        "y": 530
+            },
+            {
+                        "id": 134,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 72,
+                        "x": 831.3432835820896,
+                        "y": 530
+            },
+            {
+                        "id": 135,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 2,
+                        "parent": 73,
+                        "x": 846.2686567164179,
+                        "y": 530
+            },
+            {
+                        "id": 136,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 73,
+                        "x": 861.1940298507463,
+                        "y": 530
+            },
+            {
+                        "id": 137,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 74,
+                        "x": 876.1194029850747,
+                        "y": 530
+            },
+            {
+                        "id": 138,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 74,
+                        "x": 891.044776119403,
+                        "y": 530
+            },
+            {
+                        "id": 139,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 75,
+                        "x": 905.9701492537314,
+                        "y": 530
+            },
+            {
+                        "id": 140,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 76,
+                        "x": 920.8955223880597,
+                        "y": 530
+            },
+            {
+                        "id": 141,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 76,
+                        "x": 935.8208955223881,
+                        "y": 530
+            },
+            {
+                        "id": 142,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 76,
+                        "x": 950.7462686567164,
+                        "y": 530
+            },
+            {
+                        "id": 143,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 78,
+                        "x": 965.6716417910447,
+                        "y": 530
+            },
+            {
+                        "id": 144,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 78,
+                        "x": 980.5970149253732,
+                        "y": 530
+            },
+            {
+                        "id": 145,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 78,
+                        "x": 995.5223880597015,
+                        "y": 530
+            },
+            {
+                        "id": 146,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 79,
+                        "x": 1010.4477611940299,
+                        "y": 530
+            },
+            {
+                        "id": 147,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 79,
+                        "x": 1025.3731343283582,
+                        "y": 530
+            },
+            {
+                        "id": 148,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 79,
+                        "x": 1040.2985074626868,
+                        "y": 530
+            },
+            {
+                        "id": 149,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 81,
+                        "x": 1055.223880597015,
+                        "y": 530
+            },
+            {
+                        "id": 150,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 81,
+                        "x": 1070.1492537313434,
+                        "y": 530
+            },
+            {
+                        "id": 151,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 83,
+                        "x": 1085.0746268656717,
+                        "y": 530
+            },
+            {
+                        "id": 152,
+                        "depth": 4,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 84,
+                        "x": 1100.0,
+                        "y": 530
+            },
+            {
+                        "id": 153,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 85,
+                        "x": 100.0,
+                        "y": 650
+            },
+            {
+                        "id": 154,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 87,
+                        "x": 125.64102564102564,
+                        "y": 650
+            },
+            {
+                        "id": 155,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 88,
+                        "x": 151.28205128205127,
+                        "y": 650
+            },
+            {
+                        "id": 156,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 89,
+                        "x": 176.92307692307693,
+                        "y": 650
+            },
+            {
+                        "id": 157,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 1,
+                        "parent": 90,
+                        "x": 202.56410256410257,
+                        "y": 650
+            },
+            {
+                        "id": 158,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 91,
+                        "x": 228.2051282051282,
+                        "y": 650
+            },
+            {
+                        "id": 159,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 92,
+                        "x": 253.84615384615387,
+                        "y": 650
+            },
+            {
+                        "id": 160,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 92,
+                        "x": 279.4871794871795,
+                        "y": 650
+            },
+            {
+                        "id": 161,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 93,
+                        "x": 305.12820512820514,
+                        "y": 650
+            },
+            {
+                        "id": 162,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 93,
+                        "x": 330.7692307692308,
+                        "y": 650
+            },
+            {
+                        "id": 163,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 94,
+                        "x": 356.4102564102564,
+                        "y": 650
+            },
+            {
+                        "id": 164,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 95,
+                        "x": 382.05128205128204,
+                        "y": 650
+            },
+            {
+                        "id": 165,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 1,
+                        "parent": 95,
+                        "x": 407.69230769230774,
+                        "y": 650
+            },
+            {
+                        "id": 166,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 97,
+                        "x": 433.33333333333337,
+                        "y": 650
+            },
+            {
+                        "id": 167,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 97,
+                        "x": 458.974358974359,
+                        "y": 650
+            },
+            {
+                        "id": 168,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 99,
+                        "x": 484.61538461538464,
+                        "y": 650
+            },
+            {
+                        "id": 169,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 100,
+                        "x": 510.2564102564103,
+                        "y": 650
+            },
+            {
+                        "id": 170,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 101,
+                        "x": 535.8974358974359,
+                        "y": 650
+            },
+            {
+                        "id": 171,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 102,
+                        "x": 561.5384615384615,
+                        "y": 650
+            },
+            {
+                        "id": 172,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 103,
+                        "x": 587.1794871794872,
+                        "y": 650
+            },
+            {
+                        "id": 173,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 106,
+                        "x": 612.8205128205128,
+                        "y": 650
+            },
+            {
+                        "id": 174,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 110,
+                        "x": 638.4615384615385,
+                        "y": 650
+            },
+            {
+                        "id": 175,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 111,
+                        "x": 664.1025641025641,
+                        "y": 650
+            },
+            {
+                        "id": 176,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 111,
+                        "x": 689.7435897435897,
+                        "y": 650
+            },
+            {
+                        "id": 177,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 113,
+                        "x": 715.3846153846155,
+                        "y": 650
+            },
+            {
+                        "id": 178,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 113,
+                        "x": 741.0256410256411,
+                        "y": 650
+            },
+            {
+                        "id": 179,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 114,
+                        "x": 766.6666666666667,
+                        "y": 650
+            },
+            {
+                        "id": 180,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 115,
+                        "x": 792.3076923076924,
+                        "y": 650
+            },
+            {
+                        "id": 181,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 117,
+                        "x": 817.948717948718,
+                        "y": 650
+            },
+            {
+                        "id": 182,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 119,
+                        "x": 843.5897435897436,
+                        "y": 650
+            },
+            {
+                        "id": 183,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 120,
+                        "x": 869.2307692307693,
+                        "y": 650
+            },
+            {
+                        "id": 184,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 122,
+                        "x": 894.8717948717949,
+                        "y": 650
+            },
+            {
+                        "id": 185,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "Coucher Donut Saucisse",
+                        "action_type": "lay_down",
+                        "children_count": 0,
+                        "parent": 128,
+                        "x": 920.5128205128206,
+                        "y": 650
+            },
+            {
+                        "id": 186,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 131,
+                        "x": 946.1538461538462,
+                        "y": 650
+            },
+            {
+                        "id": 187,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 134,
+                        "x": 971.7948717948718,
+                        "y": 650
+            },
+            {
+                        "id": 188,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 135,
+                        "x": 997.4358974358975,
+                        "y": 650
+            },
+            {
+                        "id": 189,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 135,
+                        "x": 1023.0769230769231,
+                        "y": 650
+            },
+            {
+                        "id": 190,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 136,
+                        "x": 1048.7179487179487,
+                        "y": 650
+            },
+            {
+                        "id": 191,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 137,
+                        "x": 1074.3589743589744,
+                        "y": 650
+            },
+            {
+                        "id": 192,
+                        "depth": 5,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cylindre Tungst\u00e8ne",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 139,
+                        "x": 1100.0,
+                        "y": 650
+            },
+            {
+                        "id": 193,
+                        "depth": 6,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 157,
+                        "x": 100.0,
+                        "y": 770
+            },
+            {
+                        "id": 194,
+                        "depth": 6,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 159,
+                        "x": 266.66666666666663,
+                        "y": 770
+            },
+            {
+                        "id": 195,
+                        "depth": 6,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 160,
+                        "x": 433.3333333333333,
+                        "y": 770
+            },
+            {
+                        "id": 196,
+                        "depth": 6,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube violet sur Donut Saucisse",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 161,
+                        "x": 600.0,
+                        "y": 770
+            },
+            {
+                        "id": 197,
+                        "depth": 6,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 162,
+                        "x": 766.6666666666666,
+                        "y": 770
+            },
+            {
+                        "id": 198,
+                        "depth": 6,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cube gris sur Cube violet",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 163,
+                        "x": 933.3333333333333,
+                        "y": 770
+            },
+            {
+                        "id": 199,
+                        "depth": 6,
+                        "is_goal": false,
+                        "description": "D\u00e9placer Cylindre Tungst\u00e8ne sur Cube gris",
+                        "action_type": "move",
+                        "children_count": 0,
+                        "parent": 165,
+                        "x": 1100.0,
+                        "y": 770
+            }
+],
+            links: [
+            {
+                        "source": 0,
+                        "target": 1
+            },
+            {
+                        "source": 0,
+                        "target": 2
+            },
+            {
+                        "source": 0,
+                        "target": 3
+            },
+            {
+                        "source": 0,
+                        "target": 4
+            },
+            {
+                        "source": 0,
+                        "target": 5
+            },
+            {
+                        "source": 0,
+                        "target": 6
+            },
+            {
+                        "source": 0,
+                        "target": 7
+            },
+            {
+                        "source": 1,
+                        "target": 8
+            },
+            {
+                        "source": 1,
+                        "target": 9
+            },
+            {
+                        "source": 1,
+                        "target": 10
+            },
+            {
+                        "source": 2,
+                        "target": 11
+            },
+            {
+                        "source": 2,
+                        "target": 12
+            },
+            {
+                        "source": 2,
+                        "target": 13
+            },
+            {
+                        "source": 3,
+                        "target": 14
+            },
+            {
+                        "source": 3,
+                        "target": 15
+            },
+            {
+                        "source": 3,
+                        "target": 16
+            },
+            {
+                        "source": 3,
+                        "target": 17
+            },
+            {
+                        "source": 3,
+                        "target": 18
+            },
+            {
+                        "source": 3,
+                        "target": 19
+            },
+            {
+                        "source": 4,
+                        "target": 20
+            },
+            {
+                        "source": 4,
+                        "target": 21
+            },
+            {
+                        "source": 4,
+                        "target": 22
+            },
+            {
+                        "source": 4,
+                        "target": 23
+            },
+            {
+                        "source": 4,
+                        "target": 24
+            },
+            {
+                        "source": 4,
+                        "target": 25
+            },
+            {
+                        "source": 4,
+                        "target": 26
+            },
+            {
+                        "source": 4,
+                        "target": 27
+            },
+            {
+                        "source": 5,
+                        "target": 28
+            },
+            {
+                        "source": 6,
+                        "target": 29
+            },
+            {
+                        "source": 7,
+                        "target": 30
+            },
+            {
+                        "source": 7,
+                        "target": 31
+            },
+            {
+                        "source": 8,
+                        "target": 32
+            },
+            {
+                        "source": 9,
+                        "target": 33
+            },
+            {
+                        "source": 11,
+                        "target": 34
+            },
+            {
+                        "source": 11,
+                        "target": 35
+            },
+            {
+                        "source": 11,
+                        "target": 36
+            },
+            {
+                        "source": 11,
+                        "target": 37
+            },
+            {
+                        "source": 11,
+                        "target": 38
+            },
+            {
+                        "source": 11,
+                        "target": 39
+            },
+            {
+                        "source": 12,
+                        "target": 40
+            },
+            {
+                        "source": 13,
+                        "target": 41
+            },
+            {
+                        "source": 13,
+                        "target": 42
+            },
+            {
+                        "source": 14,
+                        "target": 43
+            },
+            {
+                        "source": 14,
+                        "target": 44
+            },
+            {
+                        "source": 14,
+                        "target": 45
+            },
+            {
+                        "source": 14,
+                        "target": 46
+            },
+            {
+                        "source": 14,
+                        "target": 47
+            },
+            {
+                        "source": 15,
+                        "target": 48
+            },
+            {
+                        "source": 15,
+                        "target": 49
+            },
+            {
+                        "source": 15,
+                        "target": 50
+            },
+            {
+                        "source": 16,
+                        "target": 51
+            },
+            {
+                        "source": 17,
+                        "target": 52
+            },
+            {
+                        "source": 18,
+                        "target": 53
+            },
+            {
+                        "source": 19,
+                        "target": 54
+            },
+            {
+                        "source": 20,
+                        "target": 55
+            },
+            {
+                        "source": 20,
+                        "target": 56
+            },
+            {
+                        "source": 20,
+                        "target": 57
+            },
+            {
+                        "source": 20,
+                        "target": 58
+            },
+            {
+                        "source": 21,
+                        "target": 59
+            },
+            {
+                        "source": 21,
+                        "target": 60
+            },
+            {
+                        "source": 21,
+                        "target": 61
+            },
+            {
+                        "source": 21,
+                        "target": 62
+            },
+            {
+                        "source": 22,
+                        "target": 63
+            },
+            {
+                        "source": 22,
+                        "target": 64
+            },
+            {
+                        "source": 22,
+                        "target": 65
+            },
+            {
+                        "source": 22,
+                        "target": 66
+            },
+            {
+                        "source": 23,
+                        "target": 67
+            },
+            {
+                        "source": 23,
+                        "target": 68
+            },
+            {
+                        "source": 23,
+                        "target": 69
+            },
+            {
+                        "source": 23,
+                        "target": 70
+            },
+            {
+                        "source": 24,
+                        "target": 71
+            },
+            {
+                        "source": 25,
+                        "target": 72
+            },
+            {
+                        "source": 26,
+                        "target": 73
+            },
+            {
+                        "source": 27,
+                        "target": 74
+            },
+            {
+                        "source": 27,
+                        "target": 75
+            },
+            {
+                        "source": 28,
+                        "target": 76
+            },
+            {
+                        "source": 29,
+                        "target": 77
+            },
+            {
+                        "source": 30,
+                        "target": 78
+            },
+            {
+                        "source": 30,
+                        "target": 79
+            },
+            {
+                        "source": 31,
+                        "target": 80
+            },
+            {
+                        "source": 31,
+                        "target": 81
+            },
+            {
+                        "source": 31,
+                        "target": 82
+            },
+            {
+                        "source": 31,
+                        "target": 83
+            },
+            {
+                        "source": 31,
+                        "target": 84
+            },
+            {
+                        "source": 34,
+                        "target": 85
+            },
+            {
+                        "source": 34,
+                        "target": 86
+            },
+            {
+                        "source": 35,
+                        "target": 87
+            },
+            {
+                        "source": 35,
+                        "target": 88
+            },
+            {
+                        "source": 36,
+                        "target": 89
+            },
+            {
+                        "source": 36,
+                        "target": 90
+            },
+            {
+                        "source": 36,
+                        "target": 91
+            },
+            {
+                        "source": 37,
+                        "target": 92
+            },
+            {
+                        "source": 38,
+                        "target": 93
+            },
+            {
+                        "source": 39,
+                        "target": 94
+            },
+            {
+                        "source": 39,
+                        "target": 95
+            },
+            {
+                        "source": 40,
+                        "target": 96
+            },
+            {
+                        "source": 41,
+                        "target": 97
+            },
+            {
+                        "source": 42,
+                        "target": 98
+            },
+            {
+                        "source": 42,
+                        "target": 99
+            },
+            {
+                        "source": 42,
+                        "target": 100
+            },
+            {
+                        "source": 42,
+                        "target": 101
+            },
+            {
+                        "source": 43,
+                        "target": 102
+            },
+            {
+                        "source": 43,
+                        "target": 103
+            },
+            {
+                        "source": 43,
+                        "target": 104
+            },
+            {
+                        "source": 44,
+                        "target": 105
+            },
+            {
+                        "source": 45,
+                        "target": 106
+            },
+            {
+                        "source": 46,
+                        "target": 107
+            },
+            {
+                        "source": 48,
+                        "target": 108
+            },
+            {
+                        "source": 49,
+                        "target": 109
+            },
+            {
+                        "source": 51,
+                        "target": 110
+            },
+            {
+                        "source": 52,
+                        "target": 111
+            },
+            {
+                        "source": 53,
+                        "target": 112
+            },
+            {
+                        "source": 54,
+                        "target": 113
+            },
+            {
+                        "source": 55,
+                        "target": 114
+            },
+            {
+                        "source": 55,
+                        "target": 115
+            },
+            {
+                        "source": 55,
+                        "target": 116
+            },
+            {
+                        "source": 56,
+                        "target": 117
+            },
+            {
+                        "source": 57,
+                        "target": 118
+            },
+            {
+                        "source": 59,
+                        "target": 119
+            },
+            {
+                        "source": 59,
+                        "target": 120
+            },
+            {
+                        "source": 59,
+                        "target": 121
+            },
+            {
+                        "source": 60,
+                        "target": 122
+            },
+            {
+                        "source": 61,
+                        "target": 123
+            },
+            {
+                        "source": 62,
+                        "target": 124
+            },
+            {
+                        "source": 63,
+                        "target": 125
+            },
+            {
+                        "source": 64,
+                        "target": 126
+            },
+            {
+                        "source": 65,
+                        "target": 127
+            },
+            {
+                        "source": 67,
+                        "target": 128
+            },
+            {
+                        "source": 67,
+                        "target": 129
+            },
+            {
+                        "source": 68,
+                        "target": 130
+            },
+            {
+                        "source": 69,
+                        "target": 131
+            },
+            {
+                        "source": 70,
+                        "target": 132
+            },
+            {
+                        "source": 71,
+                        "target": 133
+            },
+            {
+                        "source": 72,
+                        "target": 134
+            },
+            {
+                        "source": 73,
+                        "target": 135
+            },
+            {
+                        "source": 73,
+                        "target": 136
+            },
+            {
+                        "source": 74,
+                        "target": 137
+            },
+            {
+                        "source": 74,
+                        "target": 138
+            },
+            {
+                        "source": 75,
+                        "target": 139
+            },
+            {
+                        "source": 76,
+                        "target": 140
+            },
+            {
+                        "source": 76,
+                        "target": 141
+            },
+            {
+                        "source": 76,
+                        "target": 142
+            },
+            {
+                        "source": 78,
+                        "target": 143
+            },
+            {
+                        "source": 78,
+                        "target": 144
+            },
+            {
+                        "source": 78,
+                        "target": 145
+            },
+            {
+                        "source": 79,
+                        "target": 146
+            },
+            {
+                        "source": 79,
+                        "target": 147
+            },
+            {
+                        "source": 79,
+                        "target": 148
+            },
+            {
+                        "source": 81,
+                        "target": 149
+            },
+            {
+                        "source": 81,
+                        "target": 150
+            },
+            {
+                        "source": 83,
+                        "target": 151
+            },
+            {
+                        "source": 84,
+                        "target": 152
+            },
+            {
+                        "source": 85,
+                        "target": 153
+            },
+            {
+                        "source": 87,
+                        "target": 154
+            },
+            {
+                        "source": 88,
+                        "target": 155
+            },
+            {
+                        "source": 89,
+                        "target": 156
+            },
+            {
+                        "source": 90,
+                        "target": 157
+            },
+            {
+                        "source": 91,
+                        "target": 158
+            },
+            {
+                        "source": 92,
+                        "target": 159
+            },
+            {
+                        "source": 92,
+                        "target": 160
+            },
+            {
+                        "source": 93,
+                        "target": 161
+            },
+            {
+                        "source": 93,
+                        "target": 162
+            },
+            {
+                        "source": 94,
+                        "target": 163
+            },
+            {
+                        "source": 95,
+                        "target": 164
+            },
+            {
+                        "source": 95,
+                        "target": 165
+            },
+            {
+                        "source": 97,
+                        "target": 166
+            },
+            {
+                        "source": 97,
+                        "target": 167
+            },
+            {
+                        "source": 99,
+                        "target": 168
+            },
+            {
+                        "source": 100,
+                        "target": 169
+            },
+            {
+                        "source": 101,
+                        "target": 170
+            },
+            {
+                        "source": 102,
+                        "target": 171
+            },
+            {
+                        "source": 103,
+                        "target": 172
+            },
+            {
+                        "source": 106,
+                        "target": 173
+            },
+            {
+                        "source": 110,
+                        "target": 174
+            },
+            {
+                        "source": 111,
+                        "target": 175
+            },
+            {
+                        "source": 111,
+                        "target": 176
+            },
+            {
+                        "source": 113,
+                        "target": 177
+            },
+            {
+                        "source": 113,
+                        "target": 178
+            },
+            {
+                        "source": 114,
+                        "target": 179
+            },
+            {
+                        "source": 115,
+                        "target": 180
+            },
+            {
+                        "source": 117,
+                        "target": 181
+            },
+            {
+                        "source": 119,
+                        "target": 182
+            },
+            {
+                        "source": 120,
+                        "target": 183
+            },
+            {
+                        "source": 122,
+                        "target": 184
+            },
+            {
+                        "source": 128,
+                        "target": 185
+            },
+            {
+                        "source": 131,
+                        "target": 186
+            },
+            {
+                        "source": 134,
+                        "target": 187
+            },
+            {
+                        "source": 135,
+                        "target": 188
+            },
+            {
+                        "source": 135,
+                        "target": 189
+            },
+            {
+                        "source": 136,
+                        "target": 190
+            },
+            {
+                        "source": 137,
+                        "target": 191
+            },
+            {
+                        "source": 139,
+                        "target": 192
+            },
+            {
+                        "source": 157,
+                        "target": 193
+            },
+            {
+                        "source": 159,
+                        "target": 194
+            },
+            {
+                        "source": 160,
+                        "target": 195
+            },
+            {
+                        "source": 161,
+                        "target": 196
+            },
+            {
+                        "source": 162,
+                        "target": 197
+            },
+            {
+                        "source": 163,
+                        "target": 198
+            },
+            {
+                        "source": 165,
+                        "target": 199
+            }
+]
+        };
+        
+        // Set up SVG
+        const width = 1200;
+        const height = 800;
+        const svg = d3.select("#graph")
+            .attr("width", width)
+            .attr("height", height);
+            
+        // Create zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 3])
+            .on("zoom", function(event) {
+                g.attr("transform", event.transform);
+            });
+            
+        svg.call(zoom);
+        
+        // Create main group
+        const g = svg.append("g");
+        
+        // Color scales
+        const colorScale = d3.scaleOrdinal()
+            .domain(['initial', 'move', 'lay_down'])
+            .range(['#e3f2fd', '#fff3e0', '#f3e5f5']);
+            
+        // Current data
+        let currentNodes = [...graphData.nodes];
+        let currentLinks = [...graphData.links];
+        let selectedNode = null;
+        let solutionPath = [];
+        
+        // Tooltip
+        const tooltip = d3.select("#tooltip");
+        
+        function updateVisualization() {
+            // Clear existing elements
+            g.selectAll("*").remove();
+            
+            // Create links
+            const link = g.selectAll(".link")
+                .data(currentLinks)
+                .enter().append("line")
+                .attr("class", "link")
+                .attr("x1", d => {
+                    const source = currentNodes.find(n => n.id === d.source);
+                    return source ? source.x : 0;
+                })
+                .attr("y1", d => {
+                    const source = currentNodes.find(n => n.id === d.source);
+                    return source ? source.y : 0;
+                })
+                .attr("x2", d => {
+                    const target = currentNodes.find(n => n.id === d.target);
+                    return target ? target.x : 0;
+                })
+                .attr("y2", d => {
+                    const target = currentNodes.find(n => n.id === d.target);
+                    return target ? target.y : 0;
+                });
+            
+            // Create nodes
+            const node = g.selectAll(".node")
+                .data(currentNodes)
+                .enter().append("circle")
+                .attr("class", d => `node ${d.is_goal ? 'goal' : ''}`)
+                .attr("r", d => d.is_goal ? 8 : (d.action_type === 'initial' ? 10 : 6))
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y)
+                .attr("fill", d => d.is_goal ? '#ffebee' : colorScale(d.action_type))
+                .on("click", function(event, d) {
+                    selectNode(d);
+                })
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d);
+                })
+                .on("mouseout", function() {
+                    hideTooltip();
+                });
+            
+            // Add node labels
+            const nodeText = g.selectAll(".node-text")
+                .data(currentNodes)
+                .enter().append("text")
+                .attr("class", "node-text")
+                .attr("x", d => d.x)
+                .attr("y", d => d.y + 3)
+                .text(d => d.id);
+        }
+        
+        function selectNode(node) {
+            selectedNode = node;
+            
+            // Update visual selection
+            g.selectAll(".node")
+                .classed("selected", d => d.id === node.id);
+                
+            // Show node details in tooltip
+            showNodeDetails(node);
+        }
+        
+        function showTooltip(event, node) {
+            const content = `
+                <strong>Node ${node.id}</strong><br>
+                Depth: ${node.depth}<br>
+                Action: ${node.action_type}<br>
+                ${node.description ? 'Description: ' + node.description + '<br>' : ''}
+                Children: ${node.children_count}<br>
+                ${node.is_goal ? '<strong>🎯 GOAL STATE</strong>' : ''}
+            `;
+            
+            tooltip
+                .style("display", "block")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px")
+                .html(content);
+        }
+        
+        function hideTooltip() {
+            tooltip.style("display", "none");
+        }
+        
+        function showNodeDetails(node) {
+            // This could be expanded to show more detailed information
+            console.log("Selected node:", node);
+        }
+        
+        function applyFilters() {
+            const depthFilter = parseInt(document.getElementById("depthFilter").value);
+            const actionFilter = document.getElementById("actionFilter").value;
+            
+            // Filter nodes
+            currentNodes = graphData.nodes.filter(node => {
+                const depthMatch = depthFilter === -1 || node.depth <= depthFilter;
+                const actionMatch = actionFilter === 'all' || node.action_type === actionFilter;
+                return depthMatch && actionMatch;
+            });
+            
+            // Filter links to only include visible nodes
+            const visibleNodeIds = new Set(currentNodes.map(n => n.id));
+            currentLinks = graphData.links.filter(link => 
+                visibleNodeIds.has(link.source) && visibleNodeIds.has(link.target)
+            );
+            
+            // Update stats
+            document.getElementById("visibleNodes").textContent = currentNodes.length;
+            
+            updateVisualization();
+        }
+        
+        function resetZoom() {
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity
+            );
+        }
+        
+        function centerOnGoal() {
+            const goalNode = currentNodes.find(n => n.is_goal);
+            if (goalNode) {
+                const transform = d3.zoomIdentity
+                    .translate(width / 2 - goalNode.x, height / 2 - goalNode.y)
+                    .scale(1.5);
+                    
+                svg.transition().duration(750).call(
+                    zoom.transform,
+                    transform
+                );
+                
+                selectNode(goalNode);
+            }
+        }
+        
+        function showSolutionPath() {
+            // Find goal node and trace back to root
+            const goalNode = graphData.nodes.find(n => n.is_goal);
+            if (!goalNode) return;
+            
+            const path = [];
+            let currentId = goalNode.id;
+            
+            while (currentId !== null) {
+                const node = graphData.nodes.find(n => n.id === currentId);
+                if (node) {
+                    path.unshift(node.id);
+                    currentId = node.parent;
+                } else {
+                    break;
+                }
+            }
+            
+            // Highlight solution path
+            g.selectAll(".link")
+                .classed("highlighted", d => {
+                    const sourceIndex = path.indexOf(d.source);
+                    const targetIndex = path.indexOf(d.target);
+                    return sourceIndex !== -1 && targetIndex !== -1 && Math.abs(sourceIndex - targetIndex) === 1;
+                });
+                
+            console.log("Solution path:", path);
+        }
+        
+        // Event listeners
+        document.getElementById("depthFilter").addEventListener("change", applyFilters);
+        document.getElementById("actionFilter").addEventListener("change", applyFilters);
+        
+        // Initial visualization
+        updateVisualization();
+    </script>
+</body>
+</html>
+    
